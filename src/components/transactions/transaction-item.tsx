@@ -141,7 +141,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
 
           {/* Action buttons */}
           <div
-            className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 md:opacity-100"
+            className="flex gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
             <Button
