@@ -191,6 +191,7 @@ export async function createTransaction(formData: {
   wallet_from_id?: string
   wallet_to_id?: string
   description?: string
+  notes?: string
 }): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient()
 
@@ -213,6 +214,7 @@ export async function createTransaction(formData: {
     amount: amountInCents,
     date: input.date,
     description: input.description ?? null,
+    notes: formData.notes?.trim() || null,
     wallet_id: null,
     category_id: null,
     wallet_from_id: null,
@@ -281,6 +283,7 @@ export async function updateTransaction(
     wallet_from_id?: string
     wallet_to_id?: string
     description?: string
+    notes?: string
   }
 ): Promise<ActionResult> {
   const supabase = await createClient()
@@ -312,6 +315,7 @@ export async function updateTransaction(
     amount: amountInCents,
     date: input.date,
     description: input.description ?? null,
+    notes: formData.notes?.trim() || null,
     wallet_id: null,
     category_id: null,
     wallet_from_id: null,

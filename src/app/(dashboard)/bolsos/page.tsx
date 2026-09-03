@@ -27,7 +27,7 @@ async function WalletsContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Bolsos</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Bolsos</h1>
           {activeWallets.length > 0 && (
             <p className="text-muted-foreground text-sm">
               Total: {formatCurrency(totalBalance)} em {activeWallets.length} bolso{activeWallets.length !== 1 ? 's' : ''}
@@ -56,7 +56,7 @@ async function WalletsContent() {
       {activeWallets.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="mb-4 text-5xl">👛</div>
-          <h2 className="mb-2 text-xl font-semibold">Você ainda não possui bolsos.</h2>
+          <h2 className="mb-2 text-lg font-semibold md:text-xl">Você ainda não possui bolsos.</h2>
           <p className="text-muted-foreground mb-6">
             Crie seu primeiro bolso para começar a controlar suas finanças.
           </p>

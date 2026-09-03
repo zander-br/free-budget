@@ -45,6 +45,7 @@ export interface Transaction {
   wallet_from_id: string | null
   wallet_to_id: string | null
   description: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }

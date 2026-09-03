@@ -38,18 +38,29 @@ import type { WalletWithBalance, Category, TransactionType, TransactionWithDetai
 const transactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
   amount: z.string().min(1, 'Valor é obrigatório'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
   date: z.string().min(1, 'Data é obrigatória'),
+  notes: z.string().optional(),
   wallet_id: z.string().optional(),
   category_id: z.string().optional(),
   wallet_from_id: z.string().optional(),
   wallet_to_id: z.string().optional(),
-  description: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof transactionSchema>
 
+function formatCurrencyMask(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  const cents = parseInt(digits, 10)
+  return (cents / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 function parseMoney(value: string): number {
-  const clean = value.replace(/[^0-9,]/g, '').replace(',', '.')
+  const clean = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '')
   return parseFloat(clean) || 0
 }
 
@@ -75,13 +86,16 @@ export function TransactionDialog({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: transaction?.type ?? 'EXPENSE',
-      amount: transaction ? String((transaction.amount / 100).toFixed(2)).replace('.', ',') : '',
+      amount: transaction
+        ? (transaction.amount / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '',
+      description: transaction?.description ?? '',
       date: transaction?.date ?? getTodayString(),
+      notes: transaction?.notes ?? '',
       wallet_id: transaction?.wallet_id ?? '',
       category_id: transaction?.category_id ?? '',
       wallet_from_id: transaction?.wallet_from_id ?? '',
       wallet_to_id: transaction?.wallet_to_id ?? '',
-      description: transaction?.description ?? '',
     },
   })
 
@@ -98,25 +112,20 @@ export function TransactionDialog({
         return
       }
 
+      if (values.type === 'TRANSFER' && values.wallet_from_id === values.wallet_to_id) {
+        form.setError('wallet_to_id', { message: 'Bolso de origem e destino devem ser diferentes' })
+        return
+      }
+
       const payload = {
         type: values.type as TransactionType,
         amount,
         date: values.date,
-        description: values.description || undefined,
+        description: values.description,
+        notes: values.notes?.trim() || undefined,
         ...(values.type !== 'TRANSFER'
-          ? {
-              wallet_id: values.wallet_id,
-              category_id: values.category_id,
-            }
-          : {
-              wallet_from_id: values.wallet_from_id,
-              wallet_to_id: values.wallet_to_id,
-            }),
-      }
-
-      if (values.type === 'TRANSFER' && values.wallet_from_id === values.wallet_to_id) {
-        form.setError('wallet_to_id', { message: 'Bolso de origem e destino devem ser diferentes' })
-        return
+          ? { wallet_id: values.wallet_id, category_id: values.category_id }
+          : { wallet_from_id: values.wallet_from_id, wallet_to_id: values.wallet_to_id }),
       }
 
       const result = isEditing
@@ -136,11 +145,7 @@ export function TransactionDialog({
     }
   }
 
-  const typeLabel = {
-    INCOME: 'Entrada',
-    EXPENSE: 'Saída',
-    TRANSFER: 'Transferência',
-  }[type]
+  const typeLabel = { INCOME: 'Entrada', EXPENSE: 'Saída', TRANSFER: 'Transferência' }[type]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,13 +191,42 @@ export function TransactionDialog({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
+                  <FormLabel>Valor</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-sm">
+                        R$
+                      </span>
+                      <Input
+                        value={field.value}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0,00"
+                        className="pl-9"
+                        autoComplete="off"
+                        onChange={(e) => field.onChange(formatCurrencyMask(e.target.value))}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Description — required */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0,00"
+                      placeholder="Ex: Aluguel, Supermercado, Salário..."
                       autoComplete="off"
                     />
                   </FormControl>
@@ -225,10 +259,12 @@ export function TransactionDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Bolso</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o bolso" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecione o bolso">
+                              {wallets.find((w) => w.id === field.value)?.name}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -250,10 +286,12 @@ export function TransactionDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a categoria" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecione a categoria">
+                              {categories.find((c) => c.id === field.value)?.name}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -280,10 +318,12 @@ export function TransactionDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>De (origem)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Bolso de origem" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Bolso de origem">
+                              {wallets.find((w) => w.id === field.value)?.name}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -305,10 +345,12 @@ export function TransactionDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Para (destino)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Bolso de destino" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Bolso de destino">
+                              {wallets.find((w) => w.id === field.value)?.name}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -326,17 +368,17 @@ export function TransactionDialog({
               </>
             )}
 
-            {/* Description */}
+            {/* Notes — optional */}
             <FormField
               control={form.control}
-              name="description"
+              name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição (opcional)</FormLabel>
+                  <FormLabel>Observação <span className="text-muted-foreground font-normal">(opcional)</span></FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Adicione uma descrição..."
+                      placeholder="Adicione uma observação..."
                       rows={2}
                       className="resize-none"
                     />

@@ -1,13 +1,15 @@
 'use client'
 
-import { LogOut } from 'lucide-react'
-import { ThemeToggle } from './theme-toggle'
+import { LogOut, Moon, Sun, Monitor } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { signOut } from '@/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { User } from '@supabase/supabase-js'
@@ -17,6 +19,7 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({ user }: MobileHeaderProps) {
+  const { setTheme } = useTheme()
   const name = user.user_metadata?.full_name as string | undefined
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined
   const initials = name
@@ -37,31 +40,45 @@ export function MobileHeader({ user }: MobileHeaderProps) {
         <span className="text-base font-bold">Free Budget</span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger aria-label="Menu do usuário">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button aria-label="Menu do usuário" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Avatar className="h-8 w-8 cursor-pointer">
               <AvatarImage src={avatarUrl} alt={name ?? 'Usuário'} />
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{name ?? 'Usuário'}</p>
-              <p className="text-muted-foreground text-xs">{user.email}</p>
-            </div>
-            <form action={signOut}>
-              <DropdownMenuItem>
-                <button type="submit" className="flex w-full cursor-pointer items-center">
-                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Sair
-                </button>
-              </DropdownMenuItem>
-            </form>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <div className="px-2 py-1.5">
+            <p className="text-sm font-medium">{name ?? 'Usuário'}</p>
+            <p className="text-muted-foreground text-xs">{user.email}</p>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">Tema</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => setTheme('light')}>
+            <Sun className="mr-2 h-4 w-4" aria-hidden="true" />
+            Claro
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setTheme('dark')}>
+            <Moon className="mr-2 h-4 w-4" aria-hidden="true" />
+            Escuro
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setTheme('system')}>
+            <Monitor className="mr-2 h-4 w-4" aria-hidden="true" />
+            Sistema
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <form action={signOut}>
+            <DropdownMenuItem asChild>
+              <button type="submit" className="flex w-full cursor-pointer items-center gap-2">
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Sair
+              </button>
+            </DropdownMenuItem>
+          </form>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   )
 }

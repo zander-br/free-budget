@@ -41,7 +41,7 @@ async function DashboardContent() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="mb-4 text-6xl">💰</div>
-        <h2 className="mb-2 text-2xl font-bold">Bem-vindo ao Free Budget, {firstName}!</h2>
+        <h2 className="mb-2 text-xl font-bold md:text-2xl">Bem-vindo ao Free Budget, {firstName}!</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
           Comece criando seu primeiro bolso para controlar suas finanças.
         </p>
@@ -55,7 +55,7 @@ async function DashboardContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Dashboard</h1>
           <p className="text-muted-foreground text-sm">
             Olá, {firstName}! Aqui está seu resumo financeiro.
           </p>
@@ -83,6 +83,9 @@ async function DashboardContent() {
         </div>
         <ExpensesChart data={summary.categoryExpenses} />
       </div>
+
+      {/* Mobile FAB */}
+      <NewTransactionButton wallets={wallets} categories={categories} variant="fab" />
     </div>
   )
 }

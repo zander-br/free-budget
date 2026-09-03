@@ -53,7 +53,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Movimentações</h1>
+        <h1 className="text-xl font-bold md:text-2xl">Movimentações</h1>
         <div className="hidden md:flex">
           <NewTransactionButton wallets={wallets} categories={categories} />
         </div>

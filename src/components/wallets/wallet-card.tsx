@@ -93,7 +93,7 @@ export function WalletCard({ wallet }: WalletCardProps) {
                   </Badge>
                 )}
               </div>
-              <p className="text-xl font-bold">{formatCurrency(wallet.balance)}</p>
+              <p className="text-base font-bold md:text-xl">{formatCurrency(wallet.balance)}</p>
             </div>
 
             {/* Actions */}

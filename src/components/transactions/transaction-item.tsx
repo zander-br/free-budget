@@ -77,7 +77,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
 
         {/* Content */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
+          <p className="text-sm font-medium break-words">
             {transaction.description || transaction.category?.name || 'Transferência'}
           </p>
           <div className="text-muted-foreground flex items-center gap-2 text-xs">

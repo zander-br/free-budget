@@ -64,7 +64,7 @@ async function WalletDetailContent({ id }: { id: string }) {
           />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{wallet.name}</h1>
+          <h1 className="text-xl font-bold md:text-2xl">{wallet.name}</h1>
           <p className="text-muted-foreground text-sm">
             {wallet.is_active ? 'Ativo' : 'Inativo'} • Criado em{' '}
             {new Date(wallet.created_at).toLocaleDateString('pt-BR')}
@@ -77,7 +77,7 @@ async function WalletDetailContent({ id }: { id: string }) {
         <Card className="from-primary to-primary/80 text-primary-foreground bg-gradient-to-br sm:col-span-1">
           <CardContent className="pt-6">
             <p className="text-sm font-medium opacity-90">Saldo atual</p>
-            <p className="text-3xl font-bold">{formatCurrency(wallet.balance)}</p>
+            <p className="text-xl font-bold md:text-3xl">{formatCurrency(wallet.balance)}</p>
           </CardContent>
         </Card>
 
@@ -86,7 +86,7 @@ async function WalletDetailContent({ id }: { id: string }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Entradas</p>
-                <p className="mt-1 text-xl font-bold text-green-600 dark:text-green-400">
+                <p className="mt-1 text-base font-bold text-green-600 dark:text-green-400 md:text-xl">
                   {formatCurrency(walletIncome)}
                 </p>
               </div>
@@ -100,7 +100,7 @@ async function WalletDetailContent({ id }: { id: string }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Saídas</p>
-                <p className="mt-1 text-xl font-bold text-red-600 dark:text-red-400">
+                <p className="mt-1 text-base font-bold text-red-600 dark:text-red-400 md:text-xl">
                   {formatCurrency(walletExpense)}
                 </p>
               </div>

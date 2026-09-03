@@ -74,13 +74,13 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
       </div>
 
       {/* Filters row */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         {/* Type */}
         <Select
           value={searchParams.get('type') ?? 'ALL'}
           onValueChange={(v) => updateParam('type', v)}
         >
-          <SelectTrigger className="w-40" aria-label="Filtrar por tipo">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por tipo">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
@@ -96,7 +96,7 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
           value={searchParams.get('walletId') ?? 'ALL'}
           onValueChange={(v) => updateParam('walletId', v)}
         >
-          <SelectTrigger className="w-40" aria-label="Filtrar por bolso">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por bolso">
             <SelectValue placeholder="Bolso" />
           </SelectTrigger>
           <SelectContent>
@@ -114,7 +114,7 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
           value={searchParams.get('categoryId') ?? 'ALL'}
           onValueChange={(v) => updateParam('categoryId', v)}
         >
-          <SelectTrigger className="w-44" aria-label="Filtrar por categoria">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por categoria">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
@@ -132,20 +132,20 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
           type="date"
           defaultValue={searchParams.get('startDate') ?? ''}
           onChange={(e) => updateParam('startDate', e.target.value || null)}
-          className="w-44"
+          className="w-full sm:w-44"
           aria-label="Data inicial"
         />
         <Input
           type="date"
           defaultValue={searchParams.get('endDate') ?? ''}
           onChange={(e) => updateParam('endDate', e.target.value || null)}
-          className="w-44"
+          className="w-full sm:w-44"
           aria-label="Data final"
         />
 
         {/* Clear filters */}
         {hasFilters && (
-          <Button variant="outline" size="sm" onClick={clearFilters} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={clearFilters} className="col-span-2 gap-1.5 sm:col-span-1">
             <X className="h-3.5 w-3.5" aria-hidden="true" />
             Limpar
           </Button>
