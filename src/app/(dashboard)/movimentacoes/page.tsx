@@ -3,6 +3,7 @@ import { getTransactions, getCategories } from '@/actions/transactions'
 import { getAllWallets } from '@/actions/wallets'
 import { TransactionItem } from '@/components/transactions/transaction-item'
 import { TransactionFilters } from '@/components/transactions/transaction-filters'
+import { MonthNavigator } from '@/components/transactions/month-navigator'
 import { Pagination } from '@/components/transactions/pagination'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,16 +22,30 @@ interface MovimentacoesPageProps {
   }>
 }
 
+function getCurrentMonthBounds() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  return {
+    startDate: `${year}-${pad(month + 1)}-01`,
+    endDate: `${year}-${pad(month + 1)}-${pad(lastDay)}`,
+  }
+}
+
 async function TransactionsContent({ searchParams }: { searchParams: Awaited<MovimentacoesPageProps['searchParams']> }) {
   const page = parseInt(searchParams.page ?? '1') || 1
+
+  const { startDate: defaultStart, endDate: defaultEnd } = getCurrentMonthBounds()
 
   const filters: Filters = {
     type: (searchParams.type as Filters['type']) ?? 'ALL',
     walletId: searchParams.walletId,
     categoryId: searchParams.categoryId,
     search: searchParams.search,
-    startDate: searchParams.startDate,
-    endDate: searchParams.endDate,
+    startDate: searchParams.startDate ?? defaultStart,
+    endDate: searchParams.endDate ?? defaultEnd,
     page,
     pageSize: 10,
   }
@@ -58,6 +73,9 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
           <NewTransactionButton wallets={wallets} categories={categories} />
         </div>
       </div>
+
+      {/* Month navigator */}
+      <MonthNavigator />
 
       {/* Filters */}
       <TransactionFilters wallets={wallets} categories={categories} />
@@ -105,13 +123,10 @@ function TransactionsSkeleton() {
         <Skeleton className="h-8 w-40" />
         <Skeleton className="hidden h-10 w-36 md:block" />
       </div>
-      <div className="space-y-2">
-        <Skeleton className="h-10 w-full" />
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-10 w-40" />
-          ))}
-        </div>
+      <Skeleton className="mx-auto h-8 w-48 rounded-full" />
+      <div className="flex gap-2">
+        <Skeleton className="h-10 flex-1" />
+        <Skeleton className="h-10 w-10 shrink-0" />
       </div>
       <div className="space-y-2">
         {[...Array(8)].map((_, i) => (
