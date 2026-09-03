@@ -422,6 +422,125 @@ export async function getUpcomingTransactions(): Promise<
   }
 }
 
+export type RepeatPeriod =
+  | 'dias'
+  | 'semanas'
+  | 'quinzenas'
+  | 'meses'
+  | 'bimestres'
+  | 'trimestres'
+  | 'semestres'
+  | 'anos'
+
+function addPeriodToDate(baseDate: string, period: RepeatPeriod, count: number): string {
+  const d = new Date(baseDate + 'T12:00:00')
+  switch (period) {
+    case 'dias': d.setDate(d.getDate() + count); break
+    case 'semanas': d.setDate(d.getDate() + count * 7); break
+    case 'quinzenas': d.setDate(d.getDate() + count * 15); break
+    case 'meses': d.setMonth(d.getMonth() + count); break
+    case 'bimestres': d.setMonth(d.getMonth() + count * 2); break
+    case 'trimestres': d.setMonth(d.getMonth() + count * 3); break
+    case 'semestres': d.setMonth(d.getMonth() + count * 6); break
+    case 'anos': d.setFullYear(d.getFullYear() + count); break
+  }
+  return d.toISOString().split('T')[0]
+}
+
+export async function createRecurringTransactions(
+  formData: {
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER'
+    amount: number
+    date: string
+    category_id?: string
+    wallet_id?: string
+    wallet_from_id?: string
+    wallet_to_id?: string
+    description?: string
+    notes?: string
+    is_paid?: boolean
+  },
+  repeatCount: number,
+  period: RepeatPeriod
+): Promise<ActionResult<{ count: number }>> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Não autenticado' }
+
+  const parsed = createTransactionSchema.safeParse(formData)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+
+  const input = parsed.data
+  const amountInCents = toCents(input.amount)
+  const total = repeatCount + 1
+  const today = new Date().toISOString().split('T')[0]
+
+  if ('wallet_id' in input && input.wallet_id) {
+    const { data: wallet } = await supabase.from('wallets').select('id').eq('id', input.wallet_id).eq('user_id', user.id).single()
+    if (!wallet) return { success: false, error: 'Bolso não encontrado' }
+  }
+  if ('wallet_from_id' in input && input.wallet_from_id) {
+    const { data: w } = await supabase.from('wallets').select('id').eq('id', input.wallet_from_id).eq('user_id', user.id).single()
+    if (!w) return { success: false, error: 'Bolso de origem não encontrado' }
+  }
+  if ('wallet_to_id' in input && input.wallet_to_id) {
+    const { data: w } = await supabase.from('wallets').select('id').eq('id', input.wallet_to_id).eq('user_id', user.id).single()
+    if (!w) return { success: false, error: 'Bolso de destino não encontrado' }
+  }
+
+  const baseDescription = formData.description ?? ''
+  const suffixLen = ` ${total}/${total}`.length
+  const safeBase = baseDescription.slice(0, Math.max(0, 200 - suffixLen))
+
+  const records: TransactionInsert[] = []
+  for (let i = 0; i < total; i++) {
+    const date = addPeriodToDate(input.date, period, i)
+    const isPaid =
+      i === 0
+        ? formData.is_paid !== undefined
+          ? formData.is_paid
+          : input.date <= today
+        : date <= today
+    const description = safeBase ? `${safeBase} ${i + 1}/${total}` : null
+
+    const record: TransactionInsert = {
+      user_id: user.id,
+      type: input.type,
+      amount: amountInCents,
+      date,
+      description,
+      notes: formData.notes?.trim() || null,
+      is_paid: isPaid,
+      wallet_id: null,
+      category_id: null,
+      wallet_from_id: null,
+      wallet_to_id: null,
+    }
+
+    if (input.type === 'INCOME' || input.type === 'EXPENSE') {
+      record.wallet_id = (input as { wallet_id: string }).wallet_id
+      record.category_id = (input as { category_id: string }).category_id
+    } else {
+      record.wallet_from_id = (input as { wallet_from_id: string }).wallet_from_id
+      record.wallet_to_id = (input as { wallet_to_id: string }).wallet_to_id
+    }
+
+    records.push(record)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from('transactions').insert(records as any[])
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/movimentacoes')
+  revalidatePath('/bolsos')
+
+  return { success: true, data: { count: total } }
+}
+
 export async function getCategories(): Promise<
   ActionResult<{ id: string; name: string; type: 'INCOME' | 'EXPENSE'; icon: string | null }[]>
 > {

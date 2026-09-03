@@ -32,7 +32,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { createTransaction, updateTransaction } from '@/actions/transactions'
+import { createTransaction, updateTransaction, createRecurringTransactions } from '@/actions/transactions'
+import type { RepeatPeriod } from '@/actions/transactions'
 import { getTodayString } from '@/lib/utils/format'
 import type { WalletWithBalance, Category, TransactionType, TransactionWithDetails } from '@/types'
 
@@ -86,6 +87,9 @@ export function TransactionDialog({
   transaction,
 }: TransactionDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [repeatEnabled, setRepeatEnabled] = useState(false)
+  const [repeatCount, setRepeatCount] = useState(3)
+  const [repeatPeriod, setRepeatPeriod] = useState<RepeatPeriod>('meses')
   const isEditing = !!transaction
 
   const form = useForm<FormValues>({
@@ -117,6 +121,15 @@ export function TransactionDialog({
       form.setValue('is_paid', isDatePast(dateValue))
     }
   }, [dateValue, isEditing, form])
+
+  // Reset recurrence state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setRepeatEnabled(false)
+      setRepeatCount(3)
+      setRepeatPeriod('meses')
+    }
+  }, [open])
 
   const paidLabel: Record<string, string> = {
     INCOME: 'Recebido',
@@ -150,16 +163,24 @@ export function TransactionDialog({
           : { wallet_from_id: values.wallet_from_id, wallet_to_id: values.wallet_to_id }),
       }
 
+      const isRecurring = !isEditing && repeatEnabled && repeatCount >= 1
       const result = isEditing
         ? await updateTransaction(transaction.id, payload)
-        : await createTransaction(payload)
+        : isRecurring
+          ? await createRecurringTransactions(payload, repeatCount, repeatPeriod)
+          : await createTransaction(payload)
 
       if (!result.success) {
         toast.error(result.error)
         return
       }
 
-      toast.success(isEditing ? 'Movimentação atualizada com sucesso.' : 'Movimentação adicionada com sucesso.')
+      const successMsg = isEditing
+        ? 'Movimentação atualizada com sucesso.'
+        : isRecurring
+          ? `${repeatCount + 1} lançamentos criados com sucesso.`
+          : 'Movimentação adicionada com sucesso.'
+      toast.success(successMsg)
       onOpenChange(false)
       form.reset()
     } finally {
@@ -437,6 +458,59 @@ export function TransactionDialog({
                 </FormItem>
               )}
             />
+
+            {/* Recurrence — create mode only */}
+            {!isEditing && (
+              <div className="space-y-3 rounded-lg border px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Repetir movimentação</p>
+                    <p className="text-muted-foreground text-xs">
+                      {repeatEnabled
+                        ? `Cria ${repeatCount + 1} lançamentos no total`
+                        : 'Lançamento único'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={repeatEnabled}
+                    onCheckedChange={setRepeatEnabled}
+                    aria-label="Repetir movimentação"
+                  />
+                </div>
+
+                {repeatEnabled && (
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={480}
+                      value={repeatCount}
+                      onChange={(e) => {
+                        const v = Math.max(1, Math.min(480, parseInt(e.target.value) || 1))
+                        setRepeatCount(v)
+                      }}
+                      className="w-24"
+                      aria-label="Quantidade de repetições"
+                    />
+                    <Select value={repeatPeriod} onValueChange={(v) => setRepeatPeriod(v as RepeatPeriod)}>
+                      <SelectTrigger className="flex-1" aria-label="Período de repetição">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dias">Dia(s)</SelectItem>
+                        <SelectItem value="semanas">Semana(s)</SelectItem>
+                        <SelectItem value="quinzenas">Quinzena(s)</SelectItem>
+                        <SelectItem value="meses">Mês/Meses</SelectItem>
+                        <SelectItem value="bimestres">Bimestre(s)</SelectItem>
+                        <SelectItem value="trimestres">Trimestre(s)</SelectItem>
+                        <SelectItem value="semestres">Semestre(s)</SelectItem>
+                        <SelectItem value="anos">Ano(s)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
