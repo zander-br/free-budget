@@ -4,6 +4,7 @@ const baseTransactionSchema = z.object({
   amount: z.number().positive('Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
   description: z.string().max(200, 'Descrição deve ter no máximo 200 caracteres').optional(),
+  is_paid: z.boolean().optional(),
 })
 
 export const createIncomeSchema = baseTransactionSchema.extend({

@@ -100,6 +100,7 @@ export interface Database {
           wallet_to_id: string | null
           description: string | null
           notes: string | null
+          is_paid: boolean
           created_at: string
           updated_at: string
         }
@@ -115,6 +116,7 @@ export interface Database {
           wallet_to_id?: string | null
           description?: string | null
           notes?: string | null
+          is_paid?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -130,6 +132,7 @@ export interface Database {
           wallet_to_id?: string | null
           description?: string | null
           notes?: string | null
+          is_paid?: boolean
           created_at?: string
           updated_at?: string
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { createTransaction, updateTransaction } from '@/actions/transactions'
 import { getTodayString } from '@/lib/utils/format'
 import type { WalletWithBalance, Category, TransactionType, TransactionWithDetails } from '@/types'
@@ -40,6 +41,7 @@ const transactionSchema = z.object({
   amount: z.string().min(1, 'Valor é obrigatório'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   date: z.string().min(1, 'Data é obrigatória'),
+  is_paid: z.boolean(),
   notes: z.string().optional(),
   wallet_id: z.string().optional(),
   category_id: z.string().optional(),
@@ -62,6 +64,10 @@ function formatCurrencyMask(raw: string): string {
 function parseMoney(value: string): number {
   const clean = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '')
   return parseFloat(clean) || 0
+}
+
+function isDatePast(dateStr: string): boolean {
+  return dateStr <= getTodayString()
 }
 
 interface TransactionDialogProps {
@@ -91,6 +97,7 @@ export function TransactionDialog({
         : '',
       description: transaction?.description ?? '',
       date: transaction?.date ?? getTodayString(),
+      is_paid: transaction?.is_paid ?? isDatePast(getTodayString()),
       notes: transaction?.notes ?? '',
       wallet_id: transaction?.wallet_id ?? '',
       category_id: transaction?.category_id ?? '',
@@ -100,8 +107,22 @@ export function TransactionDialog({
   })
 
   const type = form.watch('type')
+  const dateValue = form.watch('date')
   const incomeCategories = categories.filter((c) => c.type === 'INCOME')
   const expenseCategories = categories.filter((c) => c.type === 'EXPENSE')
+
+  // In create mode, auto-set is_paid based on the selected date
+  useEffect(() => {
+    if (!isEditing && dateValue) {
+      form.setValue('is_paid', isDatePast(dateValue))
+    }
+  }, [dateValue, isEditing, form])
+
+  const paidLabel: Record<string, string> = {
+    INCOME: 'Recebido',
+    EXPENSE: 'Pago',
+    TRANSFER: 'Transferido',
+  }
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true)
@@ -122,6 +143,7 @@ export function TransactionDialog({
         amount,
         date: values.date,
         description: values.description,
+        is_paid: values.is_paid,
         notes: values.notes?.trim() || undefined,
         ...(values.type !== 'TRANSFER'
           ? { wallet_id: values.wallet_id, category_id: values.category_id }
@@ -246,6 +268,34 @@ export function TransactionDialog({
                     <Input {...field} type="date" />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* is_paid toggle */}
+            <FormField
+              control={form.control}
+              name="is_paid"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+                    <div className="space-y-0.5">
+                      <FormLabel className="cursor-pointer text-sm font-medium">
+                        {paidLabel[type] ?? 'Pago'}
+                      </FormLabel>
+                      <p className="text-muted-foreground text-xs">
+                        {field.value
+                          ? 'Esta movimentação foi efetivada'
+                          : 'Pendente — ainda não efetivada'}
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
                 </FormItem>
               )}
             />

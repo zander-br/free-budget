@@ -192,6 +192,7 @@ export async function createTransaction(formData: {
   wallet_to_id?: string
   description?: string
   notes?: string
+  is_paid?: boolean
 }): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient()
 
@@ -208,6 +209,9 @@ export async function createTransaction(formData: {
   const input = parsed.data
   const amountInCents = toCents(input.amount)
 
+  const today = new Date().toISOString().split('T')[0]
+  const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
+
   const insertData: TransactionInsert = {
     user_id: user.id,
     type: input.type,
@@ -215,6 +219,7 @@ export async function createTransaction(formData: {
     date: input.date,
     description: input.description ?? null,
     notes: formData.notes?.trim() || null,
+    is_paid: isPaid,
     wallet_id: null,
     category_id: null,
     wallet_from_id: null,
@@ -284,6 +289,7 @@ export async function updateTransaction(
     wallet_to_id?: string
     description?: string
     notes?: string
+    is_paid?: boolean
   }
 ): Promise<ActionResult> {
   const supabase = await createClient()
@@ -310,12 +316,16 @@ export async function updateTransaction(
   const input = parsed.data
   const amountInCents = toCents(input.amount)
 
+  const today = new Date().toISOString().split('T')[0]
+  const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
+
   const updateData: TransactionUpdate = {
     type: input.type,
     amount: amountInCents,
     date: input.date,
     description: input.description ?? null,
     notes: formData.notes?.trim() || null,
+    is_paid: isPaid,
     wallet_id: null,
     category_id: null,
     wallet_from_id: null,
