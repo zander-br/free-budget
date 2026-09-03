@@ -2,12 +2,12 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getWallets } from '@/actions/wallets'
-import { getRecentTransactions, getDashboardSummary, getCategories } from '@/actions/transactions'
+import { getUpcomingTransactions, getDashboardSummary, getCategories } from '@/actions/transactions'
 import { getCurrentMonthRange } from '@/lib/utils/format'
 import { TotalBalanceCard } from '@/components/dashboard/total-balance-card'
 import { SummaryCards } from '@/components/dashboard/summary-cards'
 import { WalletList } from '@/components/dashboard/wallet-list'
-import { RecentTransactions } from '@/components/dashboard/recent-transactions'
+import { UpcomingTransactions } from '@/components/dashboard/upcoming-transactions'
 import { ExpensesChart } from '@/components/dashboard/expenses-chart'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,15 +24,15 @@ async function DashboardContent() {
   const { startDate, endDate } = getCurrentMonthRange()
   const firstName = (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ?? 'você'
 
-  const [walletsResult, recentResult, summaryResult, categoriesResult] = await Promise.all([
+  const [walletsResult, upcomingResult, summaryResult, categoriesResult] = await Promise.all([
     getWallets(),
-    getRecentTransactions(5),
+    getUpcomingTransactions(),
     getDashboardSummary(startDate, endDate),
     getCategories(),
   ])
 
   const wallets = walletsResult.success ? (walletsResult.data as WalletWithBalance[]) : []
-  const recentTransactions = recentResult.success ? recentResult.data : []
+  const upcoming = upcomingResult.success ? upcomingResult.data : { expenses: [], income: [] }
   const summary = summaryResult.success ? summaryResult.data : { income: 0, expense: 0, categoryExpenses: [] }
   const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : []
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0)
@@ -71,16 +71,17 @@ async function DashboardContent() {
       {/* Period summary */}
       <SummaryCards income={summary.income} expense={summary.expense} />
 
+      {/* Upcoming — bills due in the next 7 days */}
+      <UpcomingTransactions
+        expenses={upcoming.expenses}
+        income={upcoming.income}
+        wallets={wallets}
+        categories={categories}
+      />
+
       {/* Two column layout on desktop */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <WalletList wallets={wallets} />
-          <RecentTransactions
-            transactions={recentTransactions}
-            wallets={wallets}
-            categories={categories}
-          />
-        </div>
+        <WalletList wallets={wallets} />
         <ExpensesChart data={summary.categoryExpenses} />
       </div>
 

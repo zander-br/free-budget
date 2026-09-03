@@ -378,6 +378,50 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
   return { success: true, data: undefined }
 }
 
+export async function getUpcomingTransactions(): Promise<
+  ActionResult<{ expenses: TransactionWithDetails[]; income: TransactionWithDetails[] }>
+> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Não autenticado' }
+
+  const today = new Date().toISOString().split('T')[0]
+  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(
+      `
+      *,
+      category:categories(*),
+      wallet:wallets!wallet_id(*),
+      wallet_from:wallets!wallet_from_id(*),
+      wallet_to:wallets!wallet_to_id(*)
+    `
+    )
+    .eq('user_id', user.id)
+    .eq('is_paid', false)
+    .in('type', ['INCOME', 'EXPENSE'])
+    .gte('date', today)
+    .lte('date', sevenDaysLater)
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) return { success: false, error: error.message }
+
+  const all = (data as unknown as TransactionWithDetails[]) ?? []
+  return {
+    success: true,
+    data: {
+      expenses: all.filter((t) => t.type === 'EXPENSE'),
+      income: all.filter((t) => t.type === 'INCOME'),
+    },
+  }
+}
+
 export async function getCategories(): Promise<
   ActionResult<{ id: string; name: string; type: 'INCOME' | 'EXPENSE'; icon: string | null }[]>
 > {
