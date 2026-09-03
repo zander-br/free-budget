@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 
 async function getOrigin(): Promise<string> {
   const headersList = await headers()
-  const host = headersList.get('host') ?? 'localhost:3000'
-  const proto = headersList.get('x-forwarded-proto') ?? 'http'
+  const host = headersList.get('host') ?? 'free-budget.vercel.app'
+  const proto = headersList.get('x-forwarded-proto') ?? 'https'
   return `${proto}://${host}`
 }
 
