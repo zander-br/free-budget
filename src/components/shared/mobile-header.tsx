@@ -41,13 +41,11 @@ export function MobileHeader({ user }: MobileHeaderProps) {
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button aria-label="Menu do usuário" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Avatar className="h-8 w-8 cursor-pointer">
-              <AvatarImage src={avatarUrl} alt={name ?? 'Usuário'} />
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-          </button>
+        <DropdownMenuTrigger aria-label="Menu do usuário" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Avatar className="h-8 w-8 cursor-pointer">
+            <AvatarImage src={avatarUrl} alt={name ?? 'Usuário'} />
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <div className="px-2 py-1.5">
@@ -69,14 +67,10 @@ export function MobileHeader({ user }: MobileHeaderProps) {
             Sistema
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <form action={signOut}>
-            <DropdownMenuItem asChild>
-              <button type="submit" className="flex w-full cursor-pointer items-center gap-2">
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Sair
-              </button>
-            </DropdownMenuItem>
-          </form>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => signOut()}>
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Sair
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
