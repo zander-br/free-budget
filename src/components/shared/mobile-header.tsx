@@ -1,17 +1,16 @@
 'use client'
 
-import { LogOut, Moon, Sun, Monitor } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { LogOut } from 'lucide-react'
 import { signOut } from '@/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ThemeToggle } from './theme-toggle'
 import type { User } from '@supabase/supabase-js'
 
 interface MobileHeaderProps {
@@ -19,7 +18,6 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({ user }: MobileHeaderProps) {
-  const { setTheme } = useTheme()
   const name = user.user_metadata?.full_name as string | undefined
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined
   const initials = name
@@ -40,7 +38,10 @@ export function MobileHeader({ user }: MobileHeaderProps) {
         <span className="text-base font-bold">Free Budget</span>
       </div>
 
-      <DropdownMenu>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+
+        <DropdownMenu>
         <DropdownMenuTrigger aria-label="Menu do usuário" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Avatar className="h-8 w-8 cursor-pointer">
             <AvatarImage src={avatarUrl} alt={name ?? 'Usuário'} />
@@ -53,26 +54,13 @@ export function MobileHeader({ user }: MobileHeaderProps) {
             <p className="text-muted-foreground text-xs">{user.email}</p>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">Tema</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => setTheme('light')}>
-            <Sun className="mr-2 h-4 w-4" aria-hidden="true" />
-            Claro
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('dark')}>
-            <Moon className="mr-2 h-4 w-4" aria-hidden="true" />
-            Escuro
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('system')}>
-            <Monitor className="mr-2 h-4 w-4" aria-hidden="true" />
-            Sistema
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer" onClick={() => signOut()}>
             <LogOut className="h-4 w-4" aria-hidden="true" />
             Sair
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   )
 }
