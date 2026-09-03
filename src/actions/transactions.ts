@@ -40,8 +40,8 @@ export async function getTransactions(
       { count: 'exact' }
     )
     .eq('user_id', user.id)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: true })
     .range(from, to)
 
   if (filters.type && filters.type !== 'ALL') {
@@ -140,6 +140,7 @@ export async function getDashboardSummary(
     .from('transactions')
     .select('type, amount, category:categories(name, icon)')
     .eq('user_id', user.id)
+    .eq('is_paid', true)
     .in('type', ['INCOME', 'EXPENSE'])
     .gte('date', startDate)
     .lte('date', endDate)
