@@ -28,8 +28,23 @@ const walletFormSchema = z.object({
     .max(50, 'Nome deve ter no máximo 50 caracteres'),
   icon: z.string().optional(),
   color: z.string().optional(),
-  initial_balance: z.number().min(0, 'Saldo inicial não pode ser negativo').default(0),
+  initial_balance: z.string().default(''),
 })
+
+function formatCurrencyMask(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  const cents = parseInt(digits, 10)
+  return (cents / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+function parseMoney(value: string): number {
+  const clean = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '')
+  return parseFloat(clean) || 0
+}
 
 type WalletFormValues = z.infer<typeof walletFormSchema>
 
@@ -50,7 +65,9 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
       name: wallet?.name ?? '',
       icon: wallet?.icon ?? 'wallet',
       color: wallet?.color ?? '#7C3AED',
-      initial_balance: wallet ? wallet.initial_balance / 100 : 0,
+      initial_balance: wallet
+        ? (wallet.initial_balance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '',
     },
   })
 
@@ -61,8 +78,8 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
     setIsLoading(true)
     try {
       const result = isEditing
-        ? await updateWallet(wallet.id, values)
-        : await createWallet(values)
+        ? await updateWallet(wallet.id, { ...values, initial_balance: parseMoney(values.initial_balance) })
+        : await createWallet({ ...values, initial_balance: parseMoney(values.initial_balance) })
 
       if (!result.success) {
         toast.error(result.error)
@@ -120,16 +137,25 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
             name="initial_balance"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Saldo inicial (R$)</FormLabel>
+                <FormLabel>Saldo inicial</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="0,00"
-                    value={field.value}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                  />
+                  <div className="relative">
+                    <span className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-sm">
+                      R$
+                    </span>
+                    <Input
+                      value={field.value}
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      className="pl-9"
+                      autoComplete="off"
+                      onChange={(e) => field.onChange(formatCurrencyMask(e.target.value))}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
