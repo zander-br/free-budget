@@ -28,5 +28,6 @@ INSERT INTO public.categories (id, name, type, icon) VALUES
   ('3e6dc803-20c5-412f-9d6b-4e808156bb0e', 'Impostos',     'EXPENSE', 'receipt'),
   ('de323703-fc7f-4e02-a548-2fe22c2c5de2', 'Viagens',      'EXPENSE', 'plane'),
   ('741bafcb-f46a-4255-b4e2-98c6eaae0c53', 'Pets',         'EXPENSE', 'paw-print'),
-  ('acc7ec7d-7085-4279-8059-330429c8a8ef', 'Outros',       'EXPENSE', 'circle-minus')
+  ('acc7ec7d-7085-4279-8059-330429c8a8ef', 'Outros',       'EXPENSE', 'circle-minus'),
+  ('20a088f7-1d93-446d-ab7c-11bc81bc63c3', 'Investimentos', 'EXPENSE', 'trending-up')
 ON CONFLICT (id) DO NOTHING;
