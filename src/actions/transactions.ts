@@ -701,7 +701,7 @@ export async function getTransactionsSummary(
       despesaRealizada,
       despesaPrevista,
       saldo: saldoAnterior + balanceIncome - balanceExpense,
-      previsto: saldoAnterior + prevIncome - prevExpense,
+      previsto: saldoAnterior + balanceIncome - balanceExpense + prevIncome - prevExpense,
     },
   }
 }

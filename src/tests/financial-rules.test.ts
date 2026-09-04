@@ -238,14 +238,19 @@ describe('Resumo de movimentações (saldo acumulado e período)', () => {
     expect(saldo).toBe(6057413) // 60.574,13 em centavos
   })
 
-  it('previsto = saldoAnterior + receitaPrevista - despesaPrevista', () => {
+  it('previsto = saldo + receitaPrevista - despesaPrevista', () => {
     const saldoAnterior = 6252351
-    const { income, expense } = computePeriodTotals([
+    const { income: paidIncome, expense: paidExpense } = computePeriodTotals([
+      { type: 'INCOME', amount: 0 },
+      { type: 'EXPENSE', amount: 194938 },
+    ])
+    const saldo = saldoAnterior + paidIncome - paidExpense // 6.057.413
+    const { income: pendingIncome, expense: pendingExpense } = computePeriodTotals([
       { type: 'INCOME', amount: 3220400 },
       { type: 'EXPENSE', amount: 6466722 },
     ])
-    const previsto = saldoAnterior + income - expense
-    expect(previsto).toBe(3006029) // 30.060,29 em centavos
+    const previsto = saldo + pendingIncome - pendingExpense
+    expect(previsto).toBe(6057413 + 3220400 - 6466722) // 2.811.091 centavos
   })
 
   it('saldo negativo quando despesas superam o saldo anterior', () => {
@@ -278,10 +283,10 @@ describe('Resumo de movimentações (saldo acumulado e período)', () => {
 
     const saldoAnterior = 1000000
     const saldo = saldoAnterior + paidTotals.income - paidTotals.expense
-    const previsto = saldoAnterior + pendingTotals.income - pendingTotals.expense
+    const previsto = saldo + pendingTotals.income - pendingTotals.expense
 
     expect(saldo).toBe(1345000) // 1.000.000 + 500.000 - 155.000
-    expect(previsto).toBe(1220000) // 1.000.000 + 300.000 - 80.000
+    expect(previsto).toBe(1565000) // 1.345.000 + 300.000 - 80.000
   })
 })
 
