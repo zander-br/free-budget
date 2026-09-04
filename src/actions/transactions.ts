@@ -379,6 +379,31 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
   return { success: true, data: undefined }
 }
 
+export async function settleTransaction(id: string): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Não autenticado' }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const { error } = await supabase
+    .from('transactions')
+    .update({ is_paid: true, date: today })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/movimentacoes')
+  revalidatePath('/bolsos')
+
+  return { success: true, data: undefined }
+}
+
 export async function getUpcomingTransactions(): Promise<
   ActionResult<{ expenses: TransactionWithDetails[]; income: TransactionWithDetails[] }>
 > {

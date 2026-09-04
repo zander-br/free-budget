@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Calendar, Wallet, Tag, StickyNote, Check, Clock, Pencil, ArrowLeftRight } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import { TransactionDialog } from './transaction-dialog'
 import { CategoryIcon } from '@/components/shared/category-icon'
 import { formatCurrency, formatDate } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
+import { settleTransaction } from '@/actions/transactions'
 import type { TransactionWithDetails, WalletWithBalance, Category } from '@/types'
 
 interface TransactionDetailProps {
@@ -29,6 +31,7 @@ const TYPE_CONFIG = {
   INCOME: {
     label: 'Entrada',
     paidLabel: 'Recebido',
+    settleLabel: 'Receber',
     amountPrefix: '+',
     iconColor: 'text-green-600 dark:text-green-400',
     iconBg: 'bg-green-100 dark:bg-green-900/30',
@@ -36,6 +39,7 @@ const TYPE_CONFIG = {
   EXPENSE: {
     label: 'Saída',
     paidLabel: 'Pago',
+    settleLabel: 'Pagar',
     amountPrefix: '-',
     iconColor: 'text-red-600 dark:text-red-400',
     iconBg: 'bg-red-100 dark:bg-red-900/30',
@@ -43,6 +47,7 @@ const TYPE_CONFIG = {
   TRANSFER: {
     label: 'Transferência',
     paidLabel: 'Transferido',
+    settleLabel: 'Transferir',
     amountPrefix: '',
     iconColor: 'text-blue-600 dark:text-blue-400',
     iconBg: 'bg-blue-100 dark:bg-blue-900/30',
@@ -57,6 +62,7 @@ export function TransactionDetail({
   categories,
 }: TransactionDetailProps) {
   const [editOpen, setEditOpen] = useState(false)
+  const [isSettling, setIsSettling] = useState(false)
 
   const isTransfer = transaction.type === 'TRANSFER'
   const config = TYPE_CONFIG[transaction.type]
@@ -68,6 +74,18 @@ export function TransactionDetail({
   function handleEdit() {
     onOpenChange(false)
     setTimeout(() => setEditOpen(true), 150)
+  }
+
+  async function handleSettle() {
+    setIsSettling(true)
+    const result = await settleTransaction(transaction.id)
+    setIsSettling(false)
+    if (!result.success) {
+      toast.error(result.error)
+    } else {
+      toast.success('Movimentação efetivada com sucesso.')
+      onOpenChange(false)
+    }
   }
 
   return (
@@ -177,11 +195,23 @@ export function TransactionDetail({
             )}
           </dl>
 
-          <div className="flex gap-2 pt-2">
+          {/* Settle button — only for pending transactions */}
+          {!transaction.is_paid && (
+            <Button
+              className="w-full gap-1.5"
+              onClick={handleSettle}
+              disabled={isSettling}
+            >
+              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+              {isSettling ? 'Efetivando...' : config.settleLabel}
+            </Button>
+          )}
+
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
-            <Button className="flex-1 gap-1.5" onClick={handleEdit}>
+            <Button variant="outline" className="flex-1 gap-1.5" onClick={handleEdit}>
               <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
               Editar
             </Button>
