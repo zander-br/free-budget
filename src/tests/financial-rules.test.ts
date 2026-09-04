@@ -147,6 +147,144 @@ describe('Validação de valores monetários', () => {
   })
 })
 
+describe('Resumo de movimentações (saldo acumulado e período)', () => {
+  type PrevTxEntry = {
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER'
+    amount: number
+    wallet_id?: string | null
+    wallet_from_id?: string | null
+    wallet_to_id?: string | null
+  }
+
+  function computeSaldoAnterior(
+    initialBalance: number,
+    transactions: PrevTxEntry[],
+    walletId?: string
+  ): number {
+    let balance = initialBalance
+    for (const tx of transactions) {
+      if (tx.type === 'INCOME') {
+        if (!walletId || tx.wallet_id === walletId) balance += tx.amount
+      } else if (tx.type === 'EXPENSE') {
+        if (!walletId || tx.wallet_id === walletId) balance -= tx.amount
+      } else if (tx.type === 'TRANSFER' && walletId) {
+        if (tx.wallet_to_id === walletId) balance += tx.amount
+        if (tx.wallet_from_id === walletId) balance -= tx.amount
+      }
+    }
+    return balance
+  }
+
+  function computePeriodTotals(transactions: { type: string; amount: number }[]) {
+    let income = 0
+    let expense = 0
+    for (const tx of transactions) {
+      if (tx.type === 'INCOME') income += tx.amount
+      else if (tx.type === 'EXPENSE') expense += tx.amount
+    }
+    return { income, expense }
+  }
+
+  it('saldo anterior com saldo inicial e entradas passadas', () => {
+    const prev: PrevTxEntry[] = [
+      { type: 'INCOME', amount: 500000, wallet_id: WALLET_A },
+      { type: 'EXPENSE', amount: 100000, wallet_id: WALLET_A },
+    ]
+    const saldoAnterior = computeSaldoAnterior(200000, prev)
+    expect(saldoAnterior).toBe(200000 + 500000 - 100000) // 600000
+  })
+
+  it('saldo anterior filtrado por bolso específico ignora outros bolsos', () => {
+    const prev: PrevTxEntry[] = [
+      { type: 'INCOME', amount: 300000, wallet_id: WALLET_A },
+      { type: 'INCOME', amount: 100000, wallet_id: WALLET_B }, // outro bolso
+      { type: 'EXPENSE', amount: 50000, wallet_id: WALLET_A },
+    ]
+    const saldoAnterior = computeSaldoAnterior(100000, prev, WALLET_A)
+    expect(saldoAnterior).toBe(100000 + 300000 - 50000) // 350000
+  })
+
+  it('saldo anterior inclui transferências recebidas pelo bolso', () => {
+    const prev: PrevTxEntry[] = [
+      { type: 'TRANSFER', amount: 200000, wallet_from_id: WALLET_A, wallet_to_id: WALLET_B },
+    ]
+    // WALLET_B recebe a transferência → saldo aumenta
+    const saldoB = computeSaldoAnterior(0, prev, WALLET_B)
+    expect(saldoB).toBe(200000)
+
+    // WALLET_A perde a transferência → saldo diminui
+    const saldoA = computeSaldoAnterior(500000, prev, WALLET_A)
+    expect(saldoA).toBe(300000)
+  })
+
+  it('sem filtro de bolso, transferências são neutras no total', () => {
+    // Quando não há filtro por bolso, transferências são excluídas da query
+    // e o total de todos os bolsos é calculado apenas com INCOME/EXPENSE
+    const prev: PrevTxEntry[] = [
+      { type: 'INCOME', amount: 500000, wallet_id: WALLET_A },
+      { type: 'EXPENSE', amount: 200000, wallet_id: WALLET_B },
+    ]
+    const total = computeSaldoAnterior(0, prev) // sem walletId
+    expect(total).toBe(500000 - 200000) // 300000
+  })
+
+  it('saldo = saldoAnterior + receitaRealizada - despesaRealizada', () => {
+    const saldoAnterior = 6252351 // 62.523,51 em centavos
+    const { income, expense } = computePeriodTotals([
+      { type: 'INCOME', amount: 0 },
+      { type: 'EXPENSE', amount: 194938 },
+    ])
+    const saldo = saldoAnterior + income - expense
+    expect(saldo).toBe(6057413) // 60.574,13 em centavos
+  })
+
+  it('previsto = saldoAnterior + receitaPrevista - despesaPrevista', () => {
+    const saldoAnterior = 6252351
+    const { income, expense } = computePeriodTotals([
+      { type: 'INCOME', amount: 3220400 },
+      { type: 'EXPENSE', amount: 6466722 },
+    ])
+    const previsto = saldoAnterior + income - expense
+    expect(previsto).toBe(3006029) // 30.060,29 em centavos
+  })
+
+  it('saldo negativo quando despesas superam o saldo anterior', () => {
+    const saldoAnterior = 100000
+    const { income, expense } = computePeriodTotals([
+      { type: 'EXPENSE', amount: 200000 },
+    ])
+    const saldo = saldoAnterior + income - expense
+    expect(saldo).toBe(-100000)
+  })
+
+  it('resumo com transações de múltiplos tipos no período', () => {
+    const paidTx = [
+      { type: 'INCOME', amount: 500000 },
+      { type: 'EXPENSE', amount: 120000 },
+      { type: 'EXPENSE', amount: 35000 },
+    ]
+    const pendingTx = [
+      { type: 'INCOME', amount: 300000 },
+      { type: 'EXPENSE', amount: 80000 },
+    ]
+
+    const paidTotals = computePeriodTotals(paidTx)
+    const pendingTotals = computePeriodTotals(pendingTx)
+
+    expect(paidTotals.income).toBe(500000)
+    expect(paidTotals.expense).toBe(155000)
+    expect(pendingTotals.income).toBe(300000)
+    expect(pendingTotals.expense).toBe(80000)
+
+    const saldoAnterior = 1000000
+    const saldo = saldoAnterior + paidTotals.income - paidTotals.expense
+    const previsto = saldoAnterior + pendingTotals.income - pendingTotals.expense
+
+    expect(saldo).toBe(1345000) // 1.000.000 + 500.000 - 155.000
+    expect(previsto).toBe(1220000) // 1.000.000 + 300.000 - 80.000
+  })
+})
+
 describe('Validação de transferências', () => {
   it('transferência para o mesmo bolso é inválida', () => {
     const isValidTransfer = (fromId: string, toId: string) => fromId !== toId

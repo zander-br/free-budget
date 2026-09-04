@@ -10,9 +10,10 @@ interface NewTransactionButtonProps {
   wallets: WalletWithBalance[]
   categories: Category[]
   variant?: 'default' | 'fab'
+  fabBottom?: string
 }
 
-export function NewTransactionButton({ wallets, categories, variant = 'default' }: NewTransactionButtonProps) {
+export function NewTransactionButton({ wallets, categories, variant = 'default', fabBottom = 'bottom-20' }: NewTransactionButtonProps) {
   const [open, setOpen] = useState(false)
 
   if (variant === 'fab') {
@@ -21,7 +22,7 @@ export function NewTransactionButton({ wallets, categories, variant = 'default' 
         <Button
           onClick={() => setOpen(true)}
           size="icon"
-          className="fixed right-4 bottom-20 z-40 h-14 w-14 rounded-full shadow-lg md:hidden"
+          className={`fixed right-4 ${fabBottom} z-40 h-14 w-14 rounded-full shadow-lg md:hidden`}
           aria-label="Nova movimentação"
         >
           <Plus className="h-6 w-6" />

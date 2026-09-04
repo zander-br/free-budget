@@ -70,6 +70,16 @@ export interface WalletBalance {
   balance: number
 }
 
+export interface TransactionsSummary {
+  saldoAnterior: number
+  receitaRealizada: number
+  receitaPrevista: number
+  despesaRealizada: number
+  despesaPrevista: number
+  saldo: number
+  previsto: number
+}
+
 export interface PaginatedResult<T> {
   data: T[]
   count: number

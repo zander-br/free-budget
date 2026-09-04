@@ -1,10 +1,11 @@
 import { Suspense } from 'react'
-import { getTransactions, getCategories } from '@/actions/transactions'
+import { getTransactions, getCategories, getTransactionsSummary } from '@/actions/transactions'
 import { getAllWallets } from '@/actions/wallets'
 import { TransactionItem } from '@/components/transactions/transaction-item'
 import { TransactionFilters } from '@/components/transactions/transaction-filters'
 import { MonthNavigator } from '@/components/transactions/month-navigator'
 import { Pagination } from '@/components/transactions/pagination'
+import { TransactionsSummaryFooter } from '@/components/transactions/transactions-summary-footer'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -110,8 +111,8 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
       {/* Pagination */}
       <Pagination page={page} totalPages={totalPages} count={count} pageSize={10} />
 
-      {/* Mobile FAB */}
-      <NewTransactionButton wallets={wallets} categories={categories} variant="fab" />
+      {/* Mobile FAB — positioned above the summary footer (bottom-16=64px nav + ~52px footer + 8px gap = 124px ≈ bottom-32) */}
+      <NewTransactionButton wallets={wallets} categories={categories} variant="fab" fabBottom="bottom-32" />
     </div>
   )
 }
@@ -139,9 +140,27 @@ function TransactionsSkeleton() {
 
 export default async function MovimentacoesPage({ searchParams }: MovimentacoesPageProps) {
   const params = await searchParams
+  const { startDate: defaultStart, endDate: defaultEnd } = getCurrentMonthBounds()
+
+  const summaryFilters: Filters = {
+    type: (params.type as Filters['type']) ?? 'ALL',
+    walletId: params.walletId,
+    categoryId: params.categoryId,
+    search: params.search,
+    startDate: params.startDate ?? defaultStart,
+    endDate: params.endDate ?? defaultEnd,
+  }
+
+  const summaryResult = await getTransactionsSummary(summaryFilters)
+  const summary = summaryResult.success ? summaryResult.data : null
+
   return (
-    <Suspense fallback={<TransactionsSkeleton />}>
-      <TransactionsContent searchParams={params} />
-    </Suspense>
+    <>
+      <Suspense fallback={<TransactionsSkeleton />}>
+        <TransactionsContent searchParams={params} />
+      </Suspense>
+
+      <TransactionsSummaryFooter summary={summary} />
+    </>
   )
 }

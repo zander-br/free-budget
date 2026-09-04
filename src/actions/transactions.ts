@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createTransactionSchema } from '@/lib/validations/transaction'
 import { toCents } from '@/lib/utils/format'
-import type { TransactionWithDetails, PaginatedResult, TransactionFilters } from '@/types'
+import type { TransactionWithDetails, PaginatedResult, TransactionFilters, TransactionsSummary } from '@/types'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import type { ActionResult } from './wallets'
 import type { Database } from '@/types/supabase'
@@ -540,6 +540,145 @@ export async function createRecurringTransactions(
   revalidatePath('/bolsos')
 
   return { success: true, data: { count: total } }
+}
+
+export async function getTransactionsSummary(
+  filters: TransactionFilters
+): Promise<ActionResult<TransactionsSummary>> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Não autenticado' }
+
+  const { walletId, categoryId, startDate, endDate, search, type } = filters
+
+  // Wallet initial balances (base for saldo anterior)
+  let walletsQ = supabase
+    .from('wallets')
+    .select('initial_balance')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+  if (walletId) walletsQ = walletsQ.eq('id', walletId)
+
+  // Paid transactions before startDate (for saldo anterior computation)
+  const buildPrevTxQ = () => {
+    if (!startDate) return null
+    let q = supabase
+      .from('transactions')
+      .select('type, amount, wallet_id, wallet_from_id, wallet_to_id')
+      .eq('user_id', user.id)
+      .eq('is_paid', true)
+      .lt('date', startDate)
+    if (!walletId) {
+      q = q.in('type', ['INCOME', 'EXPENSE'])
+    } else {
+      q = q.or(`wallet_id.eq.${walletId},wallet_from_id.eq.${walletId},wallet_to_id.eq.${walletId}`)
+    }
+    return q
+  }
+
+  // Period queries: breakdown rows (all filters applied)
+  const buildPeriodQ = (isPaid: boolean) => {
+    let q = supabase
+      .from('transactions')
+      .select('type, amount')
+      .eq('user_id', user.id)
+      .eq('is_paid', isPaid)
+      .in('type', ['INCOME', 'EXPENSE'])
+    if (walletId) q = q.eq('wallet_id', walletId)
+    if (categoryId) q = q.eq('category_id', categoryId)
+    if (startDate) q = q.gte('date', startDate)
+    if (endDate) q = q.lte('date', endDate)
+    if (search) q = q.ilike('description', `%${search}%`)
+    if (type && type !== 'ALL' && type !== 'TRANSFER') q = q.eq('type', type)
+    return q
+  }
+
+  // Balance queries: saldo/previsto (walletId + date only — no category/search/type filter)
+  const buildBalanceQ = (isPaid: boolean) => {
+    let q = supabase
+      .from('transactions')
+      .select('type, amount')
+      .eq('user_id', user.id)
+      .eq('is_paid', isPaid)
+      .in('type', ['INCOME', 'EXPENSE'])
+    if (walletId) q = q.eq('wallet_id', walletId)
+    if (startDate) q = q.gte('date', startDate)
+    if (endDate) q = q.lte('date', endDate)
+    return q
+  }
+
+  const prevTxQuery = buildPrevTxQ()
+  const hasExtraFilters = !!(categoryId || search || (type && type !== 'ALL' && type !== 'TRANSFER'))
+
+  const [walletsRes, prevTxRes, paidPeriodRes, pendingPeriodRes, paidBalanceRes, pendingBalanceRes] =
+    await Promise.all([
+      walletsQ,
+      prevTxQuery ?? Promise.resolve({ data: [] as { type: string; amount: number; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[], error: null }),
+      buildPeriodQ(true),
+      buildPeriodQ(false),
+      hasExtraFilters ? buildBalanceQ(true) : buildPeriodQ(true),
+      hasExtraFilters ? buildBalanceQ(false) : buildPeriodQ(false),
+    ])
+
+  // Compute saldo anterior
+  const initialBalance = walletsRes.data?.reduce((sum, w) => sum + (w.initial_balance ?? 0), 0) ?? 0
+  let saldoAnterior = initialBalance
+
+  for (const tx of (prevTxRes.data ?? []) as { type: string; amount: number; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[]) {
+    if (tx.type === 'INCOME') {
+      if (!walletId || tx.wallet_id === walletId) saldoAnterior += tx.amount
+    } else if (tx.type === 'EXPENSE') {
+      if (!walletId || tx.wallet_id === walletId) saldoAnterior -= tx.amount
+    } else if (tx.type === 'TRANSFER' && walletId) {
+      if (tx.wallet_to_id === walletId) saldoAnterior += tx.amount
+      if (tx.wallet_from_id === walletId) saldoAnterior -= tx.amount
+    }
+  }
+
+  // Compute filtered breakdown rows
+  let receitaRealizada = 0
+  let despesaRealizada = 0
+  for (const tx of (paidPeriodRes.data ?? []) as { type: string; amount: number }[]) {
+    if (tx.type === 'INCOME') receitaRealizada += tx.amount
+    else if (tx.type === 'EXPENSE') despesaRealizada += tx.amount
+  }
+
+  let receitaPrevista = 0
+  let despesaPrevista = 0
+  for (const tx of (pendingPeriodRes.data ?? []) as { type: string; amount: number }[]) {
+    if (tx.type === 'INCOME') receitaPrevista += tx.amount
+    else if (tx.type === 'EXPENSE') despesaPrevista += tx.amount
+  }
+
+  // Compute saldo/previsto from unfiltered period data (walletId + date only)
+  let balanceIncome = 0
+  let balanceExpense = 0
+  for (const tx of (paidBalanceRes.data ?? []) as { type: string; amount: number }[]) {
+    if (tx.type === 'INCOME') balanceIncome += tx.amount
+    else if (tx.type === 'EXPENSE') balanceExpense += tx.amount
+  }
+
+  let prevIncome = 0
+  let prevExpense = 0
+  for (const tx of (pendingBalanceRes.data ?? []) as { type: string; amount: number }[]) {
+    if (tx.type === 'INCOME') prevIncome += tx.amount
+    else if (tx.type === 'EXPENSE') prevExpense += tx.amount
+  }
+
+  return {
+    success: true,
+    data: {
+      saldoAnterior,
+      receitaRealizada,
+      receitaPrevista,
+      despesaRealizada,
+      despesaPrevista,
+      saldo: saldoAnterior + balanceIncome - balanceExpense,
+      previsto: saldoAnterior + prevIncome - prevExpense,
+    },
+  }
 }
 
 export async function getCategories(): Promise<
