@@ -26,12 +26,12 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
   } = summary
 
   return (
-    <div className="sticky bottom-16 md:bottom-0 z-20 -mx-4 -mb-6 border-t bg-card/95 shadow-[0_-1px_6px_rgba(0,0,0,0.06)] backdrop-blur-sm">
+    <div className="fixed bottom-16 left-0 right-0 z-20 border-t bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-sm md:sticky md:bottom-0 md:left-auto md:right-auto md:-mx-4 md:-mb-6">
       {/* Collapsed row — always visible */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-3 px-4 py-2.5"
+        className="flex w-full items-center gap-3 px-4 py-3"
         aria-expanded={expanded}
         aria-label={expanded ? 'Recolher resumo' : 'Expandir resumo'}
       >
@@ -41,14 +41,14 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
           <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         )}
 
-        <div className="flex flex-1 items-center justify-around gap-4">
-          <div className="min-w-0 text-left">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="flex flex-1 items-center justify-around">
+          <div className="text-center">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Saldo
             </p>
             <p
               className={cn(
-                'text-sm font-semibold tabular-nums',
+                'text-base font-bold tabular-nums leading-tight',
                 saldo >= 0 ? 'text-primary' : 'text-destructive'
               )}
             >
@@ -56,15 +56,15 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
             </p>
           </div>
 
-          <div className="h-7 w-px shrink-0 bg-border" aria-hidden="true" />
+          <div className="h-8 w-px shrink-0 bg-border" aria-hidden="true" />
 
-          <div className="min-w-0 text-left">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="text-center">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Previsto
             </p>
             <p
               className={cn(
-                'text-sm tabular-nums',
+                'text-sm font-semibold tabular-nums leading-tight',
                 previsto >= 0 ? 'text-foreground' : 'text-destructive'
               )}
             >
@@ -76,13 +76,13 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t px-4 pb-3 pt-2">
+        <div className="border-t bg-muted/30 px-4 pb-4 pt-3">
           {/* Saldo anterior */}
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Saldo anterior</span>
+          <div className="mb-3 flex items-center justify-between text-xs">
+            <span className="font-medium text-muted-foreground">Saldo anterior</span>
             <span
               className={cn(
-                'tabular-nums font-medium',
+                'font-semibold tabular-nums',
                 saldoAnterior >= 0 ? 'text-foreground' : 'text-destructive'
               )}
             >
@@ -90,31 +90,42 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
             </span>
           </div>
 
-          {/* 2×2 grid: realized vs. expected income/expense */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">Rec. realizada</span>
-              <span className="tabular-nums text-green-600 dark:text-green-400">
-                {formatCurrency(receitaRealizada)}
-              </span>
+          {/* Realizado / Previsto columns */}
+          <div className="grid grid-cols-2 gap-x-4">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Realizado
+              </p>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Receita</span>
+                <span className="font-medium tabular-nums text-green-600 dark:text-green-400">
+                  {formatCurrency(receitaRealizada)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Despesa</span>
+                <span className="font-medium tabular-nums text-destructive">
+                  {formatCurrency(-despesaRealizada)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">Rec. prevista</span>
-              <span className="tabular-nums text-green-600/70 dark:text-green-400/70">
-                {formatCurrency(receitaPrevista)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">Desp. realizada</span>
-              <span className="tabular-nums text-destructive">
-                {formatCurrency(-despesaRealizada)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">Desp. prevista</span>
-              <span className="tabular-nums text-destructive/70">
-                {formatCurrency(-despesaPrevista)}
-              </span>
+
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Previsto
+              </p>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Receita</span>
+                <span className="font-medium tabular-nums text-green-600/70 dark:text-green-400/70">
+                  {formatCurrency(receitaPrevista)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Despesa</span>
+                <span className="font-medium tabular-nums text-destructive/70">
+                  {formatCurrency(-despesaPrevista)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

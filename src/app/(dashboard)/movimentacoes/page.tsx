@@ -155,12 +155,14 @@ export default async function MovimentacoesPage({ searchParams }: MovimentacoesP
   const summary = summaryResult.success ? summaryResult.data : null
 
   return (
-    <>
-      <Suspense fallback={<TransactionsSkeleton />}>
-        <TransactionsContent searchParams={params} />
-      </Suspense>
+    <div className="flex flex-1 flex-col">
+      <div className="flex-1 pb-14 md:pb-0">
+        <Suspense fallback={<TransactionsSkeleton />}>
+          <TransactionsContent searchParams={params} />
+        </Suspense>
+      </div>
 
       <TransactionsSummaryFooter summary={summary} />
-    </>
+    </div>
   )
 }

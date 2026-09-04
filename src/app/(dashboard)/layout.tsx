@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-          <div className="container mx-auto max-w-7xl px-4 py-6">{children}</div>
+          <div className="container mx-auto flex min-h-full max-w-7xl flex-col px-4 py-6">{children}</div>
         </main>
       </div>
 
