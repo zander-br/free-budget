@@ -12,6 +12,10 @@ import type { Database } from '@/types/supabase'
 type TransactionInsert = Database['public']['Tables']['transactions']['Insert']
 type TransactionUpdate = Database['public']['Tables']['transactions']['Update']
 
+function todayBrasilia(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+}
+
 export async function getTransactions(
   filters: TransactionFilters = {}
 ): Promise<ActionResult<PaginatedResult<TransactionWithDetails>>> {
@@ -210,7 +214,7 @@ export async function createTransaction(formData: {
   const input = parsed.data
   const amountInCents = toCents(input.amount)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayBrasilia()
   const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
 
   const insertData: TransactionInsert = {
@@ -317,7 +321,7 @@ export async function updateTransaction(
   const input = parsed.data
   const amountInCents = toCents(input.amount)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayBrasilia()
   const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
 
   const updateData: TransactionUpdate = {
@@ -387,7 +391,7 @@ export async function settleTransaction(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Não autenticado' }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayBrasilia()
 
   const { error } = await supabase
     .from('transactions')
@@ -414,8 +418,8 @@ export async function getUpcomingTransactions(): Promise<
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Não autenticado' }
 
-  const today = new Date().toISOString().split('T')[0]
-  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const today = todayBrasilia()
+  const sevenDaysLater = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
 
   const { data, error } = await supabase
     .from('transactions')
@@ -501,7 +505,7 @@ export async function createRecurringTransactions(
   const input = parsed.data
   const amountInCents = toCents(input.amount)
   const total = repeatCount + 1
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayBrasilia()
 
   if ('wallet_id' in input && input.wallet_id) {
     const { data: wallet } = await supabase.from('wallets').select('id').eq('id', input.wallet_id).eq('user_id', user.id).single()
