@@ -54,6 +54,8 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
 
   const isIncome = transaction.type === 'INCOME'
   const isTransfer = transaction.type === 'TRANSFER'
+  const todayStr = new Intl.DateTimeFormat('en-CA').format(new Date())
+  const isUrgent = !transaction.is_paid && transaction.date <= todayStr
 
   const walletName = isTransfer
     ? `${transaction.wallet_from?.name ?? '?'} → ${transaction.wallet_to?.name ?? '?'}`
@@ -66,7 +68,12 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
         role="button"
         tabIndex={0}
         aria-label={`Ver detalhes: ${transaction.description || transaction.category?.name || 'Transferência'}`}
-        className="hover:bg-muted/50 group flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        className={cn(
+          'group flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+          isUrgent
+            ? 'bg-red-50/70 hover:bg-red-100/70 dark:bg-red-950/25 dark:hover:bg-red-950/40'
+            : 'hover:bg-muted/50'
+        )}
         onClick={() => setDetailOpen(true)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDetailOpen(true) }}
       >

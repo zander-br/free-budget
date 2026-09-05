@@ -69,7 +69,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold md:text-2xl">Movimentações</h1>
+        <h1 className="hidden text-xl font-bold md:block md:text-2xl">Movimentações</h1>
         <div className="hidden md:flex">
           <NewTransactionButton wallets={wallets} categories={categories} />
         </div>
@@ -121,7 +121,7 @@ function TransactionsSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-40" />
+        <Skeleton className="hidden h-8 w-40 md:block" />
         <Skeleton className="hidden h-10 w-36 md:block" />
       </div>
       <Skeleton className="mx-auto h-8 w-48 rounded-full" />
