@@ -26,7 +26,7 @@ export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooter
   } = summary
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-20 border-t bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-sm md:sticky md:bottom-0 md:left-auto md:right-auto md:-mx-4 md:-mb-6">
+    <div className="fixed bottom-16 left-4 right-4 z-20 rounded-t-2xl border bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-sm md:sticky md:bottom-0 md:left-auto md:right-auto md:-mb-6">
       {/* Collapsed row — always visible */}
       <button
         type="button"
