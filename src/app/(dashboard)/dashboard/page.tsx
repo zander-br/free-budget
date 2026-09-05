@@ -10,6 +10,7 @@ import { WalletList } from '@/components/dashboard/wallet-list'
 import { UpcomingTransactions } from '@/components/dashboard/upcoming-transactions'
 import { ExpensesChart } from '@/components/dashboard/expenses-chart'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
+import { NewWalletButton } from '@/components/shared/new-wallet-button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { WalletWithBalance, Category } from '@/types'
 
@@ -45,7 +46,7 @@ async function DashboardContent() {
         <p className="text-muted-foreground mb-6 max-w-md">
           Comece criando seu primeiro bolso para controlar suas finanças.
         </p>
-        <NewTransactionButton wallets={[]} categories={categories} />
+        <NewWalletButton />
       </div>
     )
   }
