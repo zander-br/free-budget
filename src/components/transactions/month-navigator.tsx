@@ -57,7 +57,7 @@ export function MonthNavigator() {
   const label = raw.charAt(0).toUpperCase() + raw.slice(1)
 
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex items-center justify-center gap-1 -mt-5 md:mt-0">
       <Button
         variant="ghost"
         size="icon"
