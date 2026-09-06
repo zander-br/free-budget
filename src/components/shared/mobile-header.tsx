@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { LogOut } from 'lucide-react'
 import { signOut } from '@/actions/auth'
@@ -31,12 +32,12 @@ export function MobileHeader({ user }: MobileHeaderProps) {
 
   return (
     <header className="bg-card sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 md:hidden">
-      <div className="flex items-center gap-2">
+      <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
         <div className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg">
           <span className="text-xs text-white">💰</span>
         </div>
         <span className="text-base font-bold">Free Budget</span>
-      </div>
+      </Link>
 
       <div className="flex items-center gap-1">
         <ThemeToggle />

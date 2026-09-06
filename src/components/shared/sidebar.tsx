@@ -63,14 +63,14 @@ export function Sidebar({ user }: SidebarProps) {
           collapsed ? 'justify-center px-0' : 'justify-between px-4'
         )}
       >
-        <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
+        <Link href="/dashboard" className={cn('flex items-center gap-3 hover:opacity-80 transition-opacity', collapsed && 'justify-center')}>
           <div className="bg-sidebar-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
             <span className="text-sm">💰</span>
           </div>
           {!collapsed && (
             <span className="text-sidebar-foreground text-lg font-semibold">Free Budget</span>
           )}
-        </div>
+        </Link>
 
         {!collapsed && (
           <button
