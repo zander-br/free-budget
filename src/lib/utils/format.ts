@@ -32,16 +32,19 @@ export function fromCents(cents: number): number {
 }
 
 export function getCurrentMonthRange(): { startDate: string; endDate: string } {
-  const now = new Date()
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const nowStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+  const [year, month] = nowStr.split('-').map(Number)
+  
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
   return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
+    startDate,
+    endDate,
   }
 }
 
 export function getTodayString(): string {
-  return format(new Date(), 'yyyy-MM-dd')
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 }

@@ -1,10 +1,9 @@
 import { Suspense } from 'react'
 import { getTransactions, getCategories, getTransactionsSummary } from '@/actions/transactions'
 import { getAllWallets } from '@/actions/wallets'
-import { TransactionItem } from '@/components/transactions/transaction-item'
 import { TransactionFilters } from '@/components/transactions/transaction-filters'
 import { MonthNavigator } from '@/components/transactions/month-navigator'
-import { Pagination } from '@/components/transactions/pagination'
+import { InfiniteTransactionList } from '@/components/transactions/infinite-transaction-list'
 import { TransactionsSummaryFooter } from '@/components/transactions/transactions-summary-footer'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
 import { getCreditCards } from '@/actions/credit-cards'
@@ -100,22 +99,16 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
         </Card>
       ) : (
         <Card>
-          <div className="divide-y p-2">
-            {transactions.map((t) => (
-              <TransactionItem
-                key={t.id}
-                transaction={t as TransactionWithDetails}
-                wallets={wallets}
-                categories={categories}
-                creditCards={creditCards}
-              />
-            ))}
-          </div>
+          <InfiniteTransactionList 
+            initialTransactions={transactions as TransactionWithDetails[]}
+            initialTotalPages={totalPages}
+            filters={filters}
+            wallets={wallets}
+            categories={categories}
+            creditCards={creditCards}
+          />
         </Card>
       )}
-
-      {/* Pagination */}
-      <Pagination page={page} totalPages={totalPages} count={count} pageSize={10} />
 
       {/* Mobile FAB — positioned above the summary footer (bottom-16=64px nav + ~52px footer + 8px gap = 124px ≈ bottom-32) */}
       <NewTransactionButton wallets={wallets} categories={categories} creditCards={creditCards} variant="fab" fabBottom="bottom-32" />

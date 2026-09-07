@@ -152,7 +152,6 @@ export async function getDashboardSummary(
     .from('transactions')
     .select('type, amount, credit_card_id, description, category:categories(name, icon)')
     .eq('user_id', user.id)
-    .eq('is_paid', true)
     .in('type', ['INCOME', 'EXPENSE'])
     .gte('date', startDate)
     .lte('date', endDate)
