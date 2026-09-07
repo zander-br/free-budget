@@ -23,7 +23,7 @@ export function NewTransactionButton({ wallets, categories, creditCards = [], va
         <Button
           onClick={() => setOpen(true)}
           size="icon"
-          className={`fixed right-4 ${fabBottom} z-40 h-14 w-14 rounded-full shadow-lg transition-transform duration-300 md:hidden [.summary-expanded_&]:-translate-y-[104px]`}
+          className={`fixed right-4 ${fabBottom} z-40 h-14 w-14 rounded-full shadow-lg transition-transform duration-300 md:hidden [.summary-expanded_&]:-translate-y-[117px]`}
           aria-label="Nova movimentação"
         >
           <Plus className="h-6 w-6" />
