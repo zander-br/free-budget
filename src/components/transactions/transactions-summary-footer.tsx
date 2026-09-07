@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,17 @@ interface TransactionsSummaryFooterProps {
 
 export function TransactionsSummaryFooter({ summary }: TransactionsSummaryFooterProps) {
   const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    if (expanded) {
+      document.body.classList.add('summary-expanded')
+    } else {
+      document.body.classList.remove('summary-expanded')
+    }
+    return () => {
+      document.body.classList.remove('summary-expanded')
+    }
+  }, [expanded])
 
   if (!summary) return null
 
