@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Wallet, ArrowLeftRight, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Wallet, ArrowLeftRight, CreditCard, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
 import { signOut } from '@/actions/auth'
@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/bolsos', label: 'Bolsos', icon: Wallet },
+  { href: '/cartoes', label: 'Cartões', icon: CreditCard },
   { href: '/movimentacoes', label: 'Movimentações', icon: ArrowLeftRight },
 ]
 

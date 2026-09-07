@@ -34,6 +34,25 @@ export interface Category {
   created_at: string
 }
 
+export interface CreditCard {
+  id: string
+  user_id: string
+  name: string
+  credit_limit: number
+  closing_day: number
+  due_day: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreditCardWithUsage extends CreditCard {
+  used_amount: number
+  available_limit: number
+  current_invoice_amount: number
+  invoice_due_date: string
+}
+
 export interface Transaction {
   id: string
   user_id: string
@@ -44,6 +63,8 @@ export interface Transaction {
   wallet_id: string | null
   wallet_from_id: string | null
   wallet_to_id: string | null
+  credit_card_id: string | null
+  invoice_id: string | null
   description: string | null
   notes: string | null
   is_paid: boolean
@@ -56,6 +77,7 @@ export interface TransactionWithDetails extends Transaction {
   wallet: Wallet | null
   wallet_from: Wallet | null
   wallet_to: Wallet | null
+  credit_card: CreditCard | null
 }
 
 export interface DashboardSummary {
@@ -91,6 +113,7 @@ export interface PaginatedResult<T> {
 export interface TransactionFilters {
   walletId?: string
   categoryId?: string
+  creditCardId?: string
   type?: TransactionType | 'ALL'
   startDate?: string
   endDate?: string

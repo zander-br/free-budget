@@ -4,16 +4,17 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TransactionDialog } from '@/components/transactions/transaction-dialog'
-import type { WalletWithBalance, Category } from '@/types'
+import type { WalletWithBalance, Category, CreditCard } from '@/types'
 
 interface NewTransactionButtonProps {
   wallets: WalletWithBalance[]
   categories: Category[]
+  creditCards?: CreditCard[]
   variant?: 'default' | 'fab'
   fabBottom?: string
 }
 
-export function NewTransactionButton({ wallets, categories, variant = 'default', fabBottom = 'bottom-20' }: NewTransactionButtonProps) {
+export function NewTransactionButton({ wallets, categories, creditCards = [], variant = 'default', fabBottom = 'bottom-20' }: NewTransactionButtonProps) {
   const [open, setOpen] = useState(false)
 
   if (variant === 'fab') {
@@ -27,7 +28,7 @@ export function NewTransactionButton({ wallets, categories, variant = 'default',
         >
           <Plus className="h-6 w-6" />
         </Button>
-        <TransactionDialog open={open} onOpenChange={setOpen} wallets={wallets} categories={categories} />
+        <TransactionDialog open={open} onOpenChange={setOpen} wallets={wallets} categories={categories} creditCards={creditCards} />
       </>
     )
   }
@@ -38,7 +39,8 @@ export function NewTransactionButton({ wallets, categories, variant = 'default',
         <Plus className="h-4 w-4" aria-hidden="true" />
         Nova movimentação
       </Button>
-      <TransactionDialog open={open} onOpenChange={setOpen} wallets={wallets} categories={categories} />
+      <TransactionDialog open={open} onOpenChange={setOpen} wallets={wallets} categories={categories} creditCards={creditCards} />
     </>
   )
 }
+

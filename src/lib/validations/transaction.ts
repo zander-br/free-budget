@@ -17,6 +17,7 @@ export const createExpenseSchema = baseTransactionSchema.extend({
   type: z.literal('EXPENSE'),
   wallet_id: z.string().min(1, 'Bolso é obrigatório'),
   category_id: z.string().min(1, 'Categoria é obrigatória'),
+  credit_card_id: z.string().optional(),
 })
 
 export const createTransferSchema = baseTransactionSchema
@@ -40,3 +41,4 @@ export type CreateTransactionInput = z.infer<typeof createTransactionSchema>
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>
 export type CreateTransferInput = z.infer<typeof createTransferSchema>
+

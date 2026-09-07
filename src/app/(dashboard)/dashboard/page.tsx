@@ -2,17 +2,19 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getWallets } from '@/actions/wallets'
+import { getCreditCards, getCreditCardsSummary } from '@/actions/credit-cards'
 import { getUpcomingTransactions, getDashboardSummary, getCategories } from '@/actions/transactions'
 import { getCurrentMonthRange } from '@/lib/utils/format'
 import { TotalBalanceCard } from '@/components/dashboard/total-balance-card'
 import { SummaryCards } from '@/components/dashboard/summary-cards'
 import { WalletList } from '@/components/dashboard/wallet-list'
+import { CreditCardsSummary } from '@/components/dashboard/credit-cards-summary'
 import { UpcomingTransactions } from '@/components/dashboard/upcoming-transactions'
 import { ExpensesChart } from '@/components/dashboard/expenses-chart'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
 import { NewWalletButton } from '@/components/shared/new-wallet-button'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { WalletWithBalance, Category } from '@/types'
+import type { WalletWithBalance, Category, CreditCard, CreditCardWithUsage } from '@/types'
 
 async function DashboardContent() {
   const supabase = await createClient()
@@ -25,20 +27,24 @@ async function DashboardContent() {
   const { startDate, endDate } = getCurrentMonthRange()
   const firstName = (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ?? 'você'
 
-  const [walletsResult, upcomingResult, summaryResult, categoriesResult] = await Promise.all([
+  const [walletsResult, upcomingResult, summaryResult, categoriesResult, creditCardsResult, creditCardsSummaryResult] = await Promise.all([
     getWallets(),
     getUpcomingTransactions(),
     getDashboardSummary(startDate, endDate),
     getCategories(),
+    getCreditCards(),
+    getCreditCardsSummary(startDate, endDate),
   ])
 
   const wallets = walletsResult.success ? (walletsResult.data as WalletWithBalance[]) : []
   const upcoming = upcomingResult.success ? upcomingResult.data : { expenses: [], income: [] }
   const summary = summaryResult.success ? summaryResult.data : { income: 0, expense: 0, categoryExpenses: [] }
   const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : []
+  const creditCards = creditCardsResult.success ? (creditCardsResult.data as CreditCard[]) : []
+  const creditCardsSummary = creditCardsSummaryResult.success ? (creditCardsSummaryResult.data as CreditCardWithUsage[]) : []
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0)
 
-  if (wallets.length === 0) {
+  if (wallets.length === 0 && creditCards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="mb-4 text-6xl">💰</div>
@@ -62,7 +68,7 @@ async function DashboardContent() {
           </p>
         </div>
         <div className="hidden md:flex">
-          <NewTransactionButton wallets={wallets} categories={categories} />
+          <NewTransactionButton wallets={wallets} categories={categories} creditCards={creditCards} />
         </div>
       </div>
 
@@ -80,6 +86,9 @@ async function DashboardContent() {
         categories={categories}
       />
 
+      {/* Credit Cards summary */}
+      <CreditCardsSummary creditCards={creditCardsSummary} />
+
       {/* Two column layout on desktop */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <WalletList wallets={wallets} />
@@ -87,7 +96,7 @@ async function DashboardContent() {
       </div>
 
       {/* Mobile FAB */}
-      <NewTransactionButton wallets={wallets} categories={categories} variant="fab" />
+      <NewTransactionButton wallets={wallets} categories={categories} creditCards={creditCards} variant="fab" />
     </div>
   )
 }
@@ -123,3 +132,4 @@ export default function DashboardPage() {
     </Suspense>
   )
 }
+

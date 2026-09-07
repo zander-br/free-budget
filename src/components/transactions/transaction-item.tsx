@@ -20,12 +20,13 @@ import { TransactionDialog } from './transaction-dialog'
 import { TransactionDetail } from './transaction-detail'
 import { deleteTransaction } from '@/actions/transactions'
 import { CategoryIcon } from '@/components/shared/category-icon'
-import type { TransactionWithDetails, WalletWithBalance, Category } from '@/types'
+import type { TransactionWithDetails, WalletWithBalance, Category, CreditCard } from '@/types'
 
 interface TransactionItemProps {
   transaction: TransactionWithDetails
   wallets: WalletWithBalance[]
   categories: Category[]
+  creditCards?: CreditCard[]
 }
 
 const PAID_LABEL: Record<string, string> = {
@@ -34,7 +35,7 @@ const PAID_LABEL: Record<string, string> = {
   TRANSFER: 'Transferido',
 }
 
-export function TransactionItem({ transaction, wallets, categories }: TransactionItemProps) {
+export function TransactionItem({ transaction, wallets, categories, creditCards = [] }: TransactionItemProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -54,12 +55,17 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
 
   const isIncome = transaction.type === 'INCOME'
   const isTransfer = transaction.type === 'TRANSFER'
+  const isInvoice = !!transaction.description?.startsWith('Fatura - ')
+  const isCreditCardPurchase = !!(transaction.credit_card_id && !isInvoice)
+  
   const todayStr = new Intl.DateTimeFormat('en-CA').format(new Date())
   const isUrgent = !transaction.is_paid && transaction.date <= todayStr
 
   const walletName = isTransfer
     ? `${transaction.wallet_from?.name ?? '?'} → ${transaction.wallet_to?.name ?? '?'}`
-    : transaction.wallet?.name
+    : transaction.credit_card
+      ? `Cartão ${transaction.credit_card.name}${transaction.is_paid && isInvoice && transaction.wallet ? ` • ${transaction.wallet.name}` : ''}`
+      : transaction.wallet?.name
 
   return (
     <>
@@ -83,7 +89,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
             isIncome
               ? 'bg-green-100 dark:bg-green-900/30'
-              : isTransfer
+              : isTransfer || isCreditCardPurchase
                 ? 'bg-blue-100 dark:bg-blue-900/30'
                 : 'bg-red-100 dark:bg-red-900/30'
           )}
@@ -96,7 +102,11 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
               icon={transaction.category?.icon}
               className={cn(
                 'h-4 w-4',
-                isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                isIncome 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : isCreditCardPurchase
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-red-600 dark:text-red-400'
               )}
             />
           )}
@@ -109,7 +119,10 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
           </p>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
             {!isTransfer && transaction.category && (
-              <span>{transaction.category.name}</span>
+              <>
+                <span>{transaction.category.name}</span>
+                {walletName && <span>•</span>}
+              </>
             )}
             {walletName && <span>{walletName}</span>}
             <span>•</span>
@@ -124,7 +137,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
               'text-sm font-semibold',
               isIncome
                 ? 'text-green-600 dark:text-green-400'
-                : isTransfer
+                : isTransfer || isCreditCardPurchase
                   ? 'text-blue-600 dark:text-blue-400'
                   : 'text-red-600 dark:text-red-400'
             )}
@@ -179,6 +192,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
         transaction={transaction}
         wallets={wallets}
         categories={categories}
+        creditCards={creditCards}
       />
 
       <TransactionDialog
@@ -186,6 +200,7 @@ export function TransactionItem({ transaction, wallets, categories }: Transactio
         onOpenChange={setEditOpen}
         wallets={wallets}
         categories={categories}
+        creditCards={creditCards}
         transaction={transaction}
       />
 

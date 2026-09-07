@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Wallet, Tag, StickyNote, Check, Clock, Pencil, ArrowLeftRight } from 'lucide-react'
+import { Calendar, Wallet, Tag, StickyNote, Check, Clock, Pencil, ArrowLeftRight, CreditCard as CreditCardIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -12,12 +12,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TransactionDialog } from './transaction-dialog'
 import { CategoryIcon } from '@/components/shared/category-icon'
 import { formatCurrency, formatDate } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 import { settleTransaction } from '@/actions/transactions'
-import type { TransactionWithDetails, WalletWithBalance, Category } from '@/types'
+import type { TransactionWithDetails, WalletWithBalance, Category, CreditCard } from '@/types'
 
 interface TransactionDetailProps {
   open: boolean
@@ -25,6 +26,7 @@ interface TransactionDetailProps {
   transaction: TransactionWithDetails
   wallets: WalletWithBalance[]
   categories: Category[]
+  creditCards?: CreditCard[]
 }
 
 const TYPE_CONFIG = {
@@ -60,16 +62,32 @@ export function TransactionDetail({
   transaction,
   wallets,
   categories,
+  creditCards = [],
 }: TransactionDetailProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [isSettling, setIsSettling] = useState(false)
+  const [selectedWalletId, setSelectedWalletId] = useState<string>('')
 
   const isTransfer = transaction.type === 'TRANSFER'
-  const config = TYPE_CONFIG[transaction.type]
+  const isInvoice = !!transaction.description?.startsWith('Fatura - ')
+  const isCreditCardPurchase = !!(transaction.credit_card_id && !isInvoice)
+
+  const config = isCreditCardPurchase 
+    ? {
+        label: 'Cartão de Crédito',
+        paidLabel: 'Lançado',
+        settleLabel: '',
+        amountPrefix: '-',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+      }
+    : TYPE_CONFIG[transaction.type]
 
   const walletName = isTransfer
     ? `${transaction.wallet_from?.name ?? '?'} → ${transaction.wallet_to?.name ?? '?'}`
-    : transaction.wallet?.name
+    : transaction.credit_card
+      ? `Cartão ${transaction.credit_card.name}`
+      : transaction.wallet?.name
 
   function handleEdit() {
     onOpenChange(false)
@@ -77,8 +95,13 @@ export function TransactionDetail({
   }
 
   async function handleSettle() {
+    if (isInvoice && !transaction.wallet_id && !selectedWalletId) {
+      toast.error('Informe o bolso de pagamento para prosseguir.')
+      return
+    }
+
     setIsSettling(true)
-    const result = await settleTransaction(transaction.id)
+    const result = await settleTransaction(transaction.id, selectedWalletId || undefined)
     setIsSettling(false)
     if (!result.success) {
       toast.error(result.error)
@@ -170,14 +193,55 @@ export function TransactionDetail({
               </div>
             )}
 
-            {/* Wallet(s) */}
+            {/* Wallet(s) / Credit Card */}
             {walletName && (
               <div className="flex items-center justify-between gap-4 text-sm">
                 <dt className="text-muted-foreground flex shrink-0 items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
-                  {isTransfer ? 'Bolsos' : 'Bolso'}
+                  {transaction.credit_card ? (
+                    <CreditCardIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  {transaction.credit_card ? 'Cartão' : isTransfer ? 'Bolsos' : 'Bolso'}
                 </dt>
                 <dd className="text-right">{walletName}</dd>
+              </div>
+            )}
+
+            {/* Payment wallet for paid invoices */}
+            {transaction.is_paid && isInvoice && transaction.wallet && (
+              <div className="flex items-center justify-between gap-4 text-sm">
+                <dt className="text-muted-foreground flex shrink-0 items-center gap-2">
+                  <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+                  Bolso
+                </dt>
+                <dd className="text-right">{transaction.wallet.name}</dd>
+              </div>
+            )}
+
+            {/* Wallet selector for invoices without wallet */}
+            {!transaction.is_paid && isInvoice && !transaction.wallet_id && (
+              <div className="flex flex-col gap-1.5 text-sm">
+                <dt className="text-muted-foreground flex items-center gap-2">
+                  <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+                  Bolso
+                </dt>
+                <dd>
+                  <Select value={selectedWalletId} onValueChange={(v) => setSelectedWalletId(v || '')}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o bolso">
+                        {wallets.find((w) => w.id === selectedWalletId)?.name}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wallets.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </dd>
               </div>
             )}
 
@@ -224,6 +288,7 @@ export function TransactionDetail({
         onOpenChange={setEditOpen}
         wallets={wallets}
         categories={categories}
+        creditCards={creditCards}
         transaction={transaction}
       />
     </>

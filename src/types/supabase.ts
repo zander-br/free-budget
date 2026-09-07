@@ -64,6 +64,41 @@ export interface Database {
           updated_at?: string
         }
       }
+      credit_cards: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          credit_limit: number
+          closing_day: number
+          due_day: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          credit_limit: number
+          closing_day: number
+          due_day: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          credit_limit?: number
+          closing_day?: number
+          due_day?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       categories: {
         Row: {
           id: string
@@ -98,11 +133,14 @@ export interface Database {
           wallet_id: string | null
           wallet_from_id: string | null
           wallet_to_id: string | null
+          credit_card_id: string | null
+          invoice_id: string | null
           description: string | null
           notes: string | null
           is_paid: boolean
           created_at: string
           updated_at: string
+          cycle_date: string | null
         }
         Insert: {
           id?: string
@@ -114,11 +152,14 @@ export interface Database {
           wallet_id?: string | null
           wallet_from_id?: string | null
           wallet_to_id?: string | null
+          credit_card_id?: string | null
+          invoice_id?: string | null
           description?: string | null
           notes?: string | null
           is_paid?: boolean
           created_at?: string
           updated_at?: string
+          cycle_date?: string | null
         }
         Update: {
           id?: string
@@ -130,11 +171,14 @@ export interface Database {
           wallet_id?: string | null
           wallet_from_id?: string | null
           wallet_to_id?: string | null
+          credit_card_id?: string | null
+          invoice_id?: string | null
           description?: string | null
           notes?: string | null
           is_paid?: boolean
           created_at?: string
           updated_at?: string
+          cycle_date?: string | null
         }
       }
     }
@@ -153,6 +197,18 @@ export interface Database {
           balance: number
         }
       }
+      credit_card_balances: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          credit_limit: number
+          closing_day: number
+          due_day: number
+          is_active: boolean
+          balance: number
+        }
+      }
     }
     Functions: Record<string, never>
     Enums: {
@@ -161,3 +217,4 @@ export interface Database {
     }
   }
 }
+

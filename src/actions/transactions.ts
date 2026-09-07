@@ -8,6 +8,7 @@ import type { TransactionWithDetails, PaginatedResult, TransactionFilters, Trans
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import type { ActionResult } from './wallets'
 import type { Database } from '@/types/supabase'
+import { upsertInvoiceTransaction } from './credit-cards'
 
 type TransactionInsert = Database['public']['Tables']['transactions']['Insert']
 type TransactionUpdate = Database['public']['Tables']['transactions']['Update']
@@ -39,7 +40,8 @@ export async function getTransactions(
       category:categories(*),
       wallet:wallets!wallet_id(*),
       wallet_from:wallets!wallet_from_id(*),
-      wallet_to:wallets!wallet_to_id(*)
+      wallet_to:wallets!wallet_to_id(*),
+      credit_card:credit_cards(*)
     `,
       { count: 'exact' }
     )
@@ -72,6 +74,11 @@ export async function getTransactions(
 
   if (filters.search) {
     query = query.ilike('description', `%${filters.search}%`)
+  }
+
+  if (filters.creditCardId) {
+    query = query.eq('credit_card_id', filters.creditCardId)
+    query = query.or('description.is.null,description.not.ilike.Fatura - %')
   }
 
   const { data, error, count } = await query
@@ -110,7 +117,8 @@ export async function getRecentTransactions(
       category:categories(*),
       wallet:wallets!wallet_id(*),
       wallet_from:wallets!wallet_from_id(*),
-      wallet_to:wallets!wallet_to_id(*)
+      wallet_to:wallets!wallet_to_id(*),
+      credit_card:credit_cards(*)
     `
     )
     .eq('user_id', user.id)
@@ -142,7 +150,7 @@ export async function getDashboardSummary(
 
   const { data, error } = await supabase
     .from('transactions')
-    .select('type, amount, category:categories(name, icon)')
+    .select('type, amount, credit_card_id, description, category:categories(name, icon)')
     .eq('user_id', user.id)
     .eq('is_paid', true)
     .in('type', ['INCOME', 'EXPENSE'])
@@ -158,8 +166,14 @@ export async function getDashboardSummary(
   for (const t of (data as unknown as Array<{
     type: string
     amount: number
+    credit_card_id: string | null
+    description: string | null
     category: { name: string; icon: string | null } | Array<{ name: string; icon: string | null }> | null
   }>) ?? []) {
+    // Skip invoice payments from dashboard summary to avoid double counting expenses
+    // Purchases are included. Invoices start with 'Fatura -'
+    if (t.credit_card_id && t.description?.startsWith('Fatura -')) continue
+
     const catRaw = t.category
     const cat = Array.isArray(catRaw)
       ? catRaw[0] as { name: string; icon: string | null } | undefined
@@ -195,6 +209,7 @@ export async function createTransaction(formData: {
   wallet_id?: string
   wallet_from_id?: string
   wallet_to_id?: string
+  credit_card_id?: string
   description?: string
   notes?: string
   is_paid?: boolean
@@ -213,9 +228,11 @@ export async function createTransaction(formData: {
 
   const input = parsed.data
   const amountInCents = toCents(input.amount)
+  const isCreditCard = !!(formData.credit_card_id && formData.credit_card_id.length > 0)
 
   const today = todayBrasilia()
-  const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
+  // Credit card transactions are always marked as paid (they don't affect wallet balance directly)
+  const isPaid = isCreditCard ? true : (formData.is_paid !== undefined ? formData.is_paid : input.date <= today)
 
   const insertData: TransactionInsert = {
     user_id: user.id,
@@ -229,11 +246,18 @@ export async function createTransaction(formData: {
     category_id: null,
     wallet_from_id: null,
     wallet_to_id: null,
+    credit_card_id: null,
+    invoice_id: null,
   }
 
   if (input.type === 'INCOME' || input.type === 'EXPENSE') {
-    insertData.wallet_id = input.wallet_id
     insertData.category_id = input.category_id
+    if (isCreditCard) {
+      insertData.credit_card_id = formData.credit_card_id!
+      insertData.wallet_id = null
+    } else {
+      insertData.wallet_id = input.wallet_id
+    }
   } else {
     insertData.wallet_from_id = input.wallet_from_id
     insertData.wallet_to_id = input.wallet_to_id
@@ -270,14 +294,31 @@ export async function createTransaction(formData: {
     if (!walletTo) return { success: false, error: 'Bolso de destino não encontrado' }
   }
 
+  // Verify ownership of credit card
+  if (insertData.credit_card_id) {
+    const { data: cc } = await supabase
+      .from('credit_cards')
+      .select('id')
+      .eq('id', insertData.credit_card_id)
+      .eq('user_id', user.id)
+      .single()
+    if (!cc) return { success: false, error: 'Cartão de crédito não encontrado' }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await supabase.from('transactions').insert(insertData as any).select('id').single()
 
   if (error) return { success: false, error: error.message }
 
+  // If credit card transaction, upsert the invoice for the month
+  if (isCreditCard && formData.credit_card_id) {
+    await upsertInvoiceTransaction(formData.credit_card_id, input.date)
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/movimentacoes')
   revalidatePath('/bolsos')
+  revalidatePath('/cartoes')
 
   return { success: true, data: { id: (data as { id: string }).id } }
 }
@@ -292,6 +333,7 @@ export async function updateTransaction(
     wallet_id?: string
     wallet_from_id?: string
     wallet_to_id?: string
+    credit_card_id?: string
     description?: string
     notes?: string
     is_paid?: boolean
@@ -306,7 +348,7 @@ export async function updateTransaction(
 
   const { data: existing } = await supabase
     .from('transactions')
-    .select('id, type')
+    .select('id, type, credit_card_id, date, description, cycle_date')
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
@@ -320,9 +362,10 @@ export async function updateTransaction(
 
   const input = parsed.data
   const amountInCents = toCents(input.amount)
+  const isCreditCard = !!(formData.credit_card_id && formData.credit_card_id.length > 0)
 
   const today = todayBrasilia()
-  const isPaid = formData.is_paid !== undefined ? formData.is_paid : input.date <= today
+  const isPaid = isCreditCard ? true : (formData.is_paid !== undefined ? formData.is_paid : input.date <= today)
 
   const updateData: TransactionUpdate = {
     type: input.type,
@@ -335,11 +378,17 @@ export async function updateTransaction(
     category_id: null,
     wallet_from_id: null,
     wallet_to_id: null,
+    credit_card_id: null,
   }
 
   if (input.type === 'INCOME' || input.type === 'EXPENSE') {
-    updateData.wallet_id = input.wallet_id
     updateData.category_id = input.category_id
+    if (isCreditCard) {
+      updateData.credit_card_id = formData.credit_card_id!
+      updateData.wallet_id = null
+    } else {
+      updateData.wallet_id = input.wallet_id
+    }
   } else {
     updateData.wallet_from_id = input.wallet_from_id
     updateData.wallet_to_id = input.wallet_to_id
@@ -353,9 +402,36 @@ export async function updateTransaction(
 
   if (error) return { success: false, error: error.message }
 
+  // Update invoice for old month if credit card changed
+  const oldCcId = (existing as { credit_card_id: string | null }).credit_card_id
+  const oldDate = (existing as { date: string }).date
+  const oldDesc = (existing as { description: string | null }).description
+  const oldCycleDate = (existing as { cycle_date: string | null }).cycle_date
+  if (oldCcId) {
+    if (oldDesc?.startsWith('Fatura - ') && oldCycleDate) {
+      await upsertInvoiceTransaction(oldCcId, oldDate, oldCycleDate)
+    } else {
+      await upsertInvoiceTransaction(oldCcId, oldDate)
+    }
+  }
+
+  // Update invoice for new month if credit card transaction
+  if (isCreditCard && formData.credit_card_id) {
+    const desc = input.description
+    const cycleDate = (existing as { cycle_date: string | null }).cycle_date // assuming if we edit an invoice, it keeps its cycle_date?
+    // wait, what if the user edits an existing invoice? The description is Fatura - ..., cycle_date is kept?
+    // Let's just rely on existing cycle_date if it was an invoice.
+    if (desc?.startsWith('Fatura - ') && cycleDate) {
+      await upsertInvoiceTransaction(formData.credit_card_id, input.date, cycleDate)
+    } else {
+      await upsertInvoiceTransaction(formData.credit_card_id, input.date)
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/movimentacoes')
   revalidatePath('/bolsos')
+  revalidatePath('/cartoes')
 
   return { success: true, data: undefined }
 }
@@ -368,6 +444,14 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Não autenticado' }
 
+  // Get transaction details before deleting (for invoice update)
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('id, credit_card_id, date, description, cycle_date')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
   const { error } = await supabase
     .from('transactions')
     .delete()
@@ -376,14 +460,30 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
 
   if (error) return { success: false, error: error.message }
 
+  // Update invoice if this was a credit card transaction
+  if (existing) {
+    const ccId = existing.credit_card_id
+    const txDate = existing.date
+    const desc = existing.description
+    const cycleDate = existing.cycle_date
+    if (ccId) {
+      if (desc?.startsWith('Fatura - ') && cycleDate) {
+        await upsertInvoiceTransaction(ccId, txDate, cycleDate)
+      } else {
+        await upsertInvoiceTransaction(ccId, txDate)
+      }
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/movimentacoes')
   revalidatePath('/bolsos')
+  revalidatePath('/cartoes')
 
   return { success: true, data: undefined }
 }
 
-export async function settleTransaction(id: string): Promise<ActionResult> {
+export async function settleTransaction(id: string, walletId?: string): Promise<ActionResult> {
   const supabase = await createClient()
 
   const {
@@ -393,9 +493,14 @@ export async function settleTransaction(id: string): Promise<ActionResult> {
 
   const today = todayBrasilia()
 
+  const updateData: any = { is_paid: true, date: today }
+  if (walletId) {
+    updateData.wallet_id = walletId
+  }
+
   const { error } = await supabase
     .from('transactions')
-    .update({ is_paid: true, date: today })
+    .update(updateData)
     .eq('id', id)
     .eq('user_id', user.id)
 
@@ -429,7 +534,8 @@ export async function getUpcomingTransactions(): Promise<
       category:categories(*),
       wallet:wallets!wallet_id(*),
       wallet_from:wallets!wallet_from_id(*),
-      wallet_to:wallets!wallet_to_id(*)
+      wallet_to:wallets!wallet_to_id(*),
+      credit_card:credit_cards(*)
     `
     )
     .eq('user_id', user.id)
@@ -486,6 +592,7 @@ export async function createRecurringTransactions(
     wallet_id?: string
     wallet_from_id?: string
     wallet_to_id?: string
+    credit_card_id?: string
     description?: string
     notes?: string
     is_paid?: boolean
@@ -524,11 +631,14 @@ export async function createRecurringTransactions(
   const suffixLen = ` ${total}/${total}`.length
   const safeBase = baseDescription.slice(0, Math.max(0, 200 - suffixLen))
 
+  const isCreditCard = !!(formData.credit_card_id && formData.credit_card_id.length > 0)
+
   const records: TransactionInsert[] = []
   for (let i = 0; i < total; i++) {
     const date = addPeriodToDate(input.date, period, i)
-    const isPaid =
-      i === 0
+    const isPaid = isCreditCard
+      ? true
+      : i === 0
         ? formData.is_paid !== undefined
           ? formData.is_paid
           : input.date <= today
@@ -547,11 +657,17 @@ export async function createRecurringTransactions(
       category_id: null,
       wallet_from_id: null,
       wallet_to_id: null,
+      credit_card_id: isCreditCard ? formData.credit_card_id! : null,
+      invoice_id: null,
     }
 
     if (input.type === 'INCOME' || input.type === 'EXPENSE') {
-      record.wallet_id = (input as { wallet_id: string }).wallet_id
       record.category_id = (input as { category_id: string }).category_id
+      if (isCreditCard) {
+        record.wallet_id = null
+      } else {
+        record.wallet_id = (input as { wallet_id: string }).wallet_id
+      }
     } else {
       record.wallet_from_id = (input as { wallet_from_id: string }).wallet_from_id
       record.wallet_to_id = (input as { wallet_to_id: string }).wallet_to_id
@@ -564,9 +680,21 @@ export async function createRecurringTransactions(
   const { error } = await supabase.from('transactions').insert(records as any[])
   if (error) return { success: false, error: error.message }
 
+  // Upsert invoices for all affected months if credit card
+  if (isCreditCard && formData.credit_card_id) {
+    const datesToUpdate = new Set<string>()
+    for (const record of records) {
+      datesToUpdate.add(record.date)
+    }
+    for (const dateStr of datesToUpdate) {
+      await upsertInvoiceTransaction(formData.credit_card_id, dateStr)
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/movimentacoes')
   revalidatePath('/bolsos')
+  revalidatePath('/cartoes')
 
   return { success: true, data: { count: total } }
 }
@@ -601,6 +729,9 @@ export async function getTransactionsSummary(
       .lt('date', startDate)
     if (!walletId) {
       q = q.in('type', ['INCOME', 'EXPENSE'])
+      // Exclude credit card purchases (they don't impact cash balance)
+      // Only invoices (description starts with 'Fatura - ') impact cash balance when paid
+      q = q.or('credit_card_id.is.null,description.ilike.Fatura - %')
     } else {
       q = q.or(`wallet_id.eq.${walletId},wallet_from_id.eq.${walletId},wallet_to_id.eq.${walletId}`)
     }
@@ -615,6 +746,7 @@ export async function getTransactionsSummary(
       .eq('user_id', user.id)
       .eq('is_paid', isPaid)
       .in('type', ['INCOME', 'EXPENSE'])
+      .or('credit_card_id.is.null,description.ilike.Fatura - %')
     if (walletId) q = q.eq('wallet_id', walletId)
     if (categoryId) q = q.eq('category_id', categoryId)
     if (startDate) q = q.gte('date', startDate)
@@ -632,6 +764,7 @@ export async function getTransactionsSummary(
       .eq('user_id', user.id)
       .eq('is_paid', isPaid)
       .in('type', ['INCOME', 'EXPENSE'])
+      .or('credit_card_id.is.null,description.ilike.Fatura - %')
     if (walletId) q = q.eq('wallet_id', walletId)
     if (startDate) q = q.gte('date', startDate)
     if (endDate) q = q.lte('date', endDate)

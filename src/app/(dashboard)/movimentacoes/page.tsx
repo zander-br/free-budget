@@ -7,15 +7,17 @@ import { MonthNavigator } from '@/components/transactions/month-navigator'
 import { Pagination } from '@/components/transactions/pagination'
 import { TransactionsSummaryFooter } from '@/components/transactions/transactions-summary-footer'
 import { NewTransactionButton } from '@/components/shared/new-transaction-button'
+import { getCreditCards } from '@/actions/credit-cards'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { WalletWithBalance, Category, TransactionWithDetails, TransactionFilters as Filters } from '@/types'
+import type { WalletWithBalance, Category, TransactionWithDetails, TransactionFilters as Filters, CreditCard } from '@/types'
 
 interface MovimentacoesPageProps {
   searchParams: Promise<{
     type?: string
     walletId?: string
     categoryId?: string
+    creditCardId?: string
     search?: string
     startDate?: string
     endDate?: string
@@ -44,6 +46,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
     type: (searchParams.type as Filters['type']) ?? 'ALL',
     walletId: searchParams.walletId,
     categoryId: searchParams.categoryId,
+    creditCardId: searchParams.creditCardId,
     search: searchParams.search,
     startDate: searchParams.startDate ?? defaultStart,
     endDate: searchParams.endDate ?? defaultEnd,
@@ -51,10 +54,11 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
     pageSize: 10,
   }
 
-  const [transactionsResult, walletsResult, categoriesResult] = await Promise.all([
+  const [transactionsResult, walletsResult, categoriesResult, creditCardsResult] = await Promise.all([
     getTransactions(filters),
     getAllWallets(),
     getCategories(),
+    getCreditCards(),
   ])
 
   const transactionsData = transactionsResult.success
@@ -64,6 +68,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
 
   const wallets = walletsResult.success ? (walletsResult.data as WalletWithBalance[]) : []
   const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : []
+  const creditCards = creditCardsResult.success ? (creditCardsResult.data as CreditCard[]) : []
 
   return (
     <div className="space-y-6">
@@ -71,7 +76,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
       <div className="flex items-center justify-between">
         <h1 className="hidden text-xl font-bold md:block md:text-2xl">Movimentações</h1>
         <div className="hidden md:flex">
-          <NewTransactionButton wallets={wallets} categories={categories} />
+          <NewTransactionButton wallets={wallets} categories={categories} creditCards={creditCards} />
         </div>
       </div>
 
@@ -79,7 +84,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
       <MonthNavigator />
 
       {/* Filters */}
-      <TransactionFilters wallets={wallets} categories={categories} />
+      <TransactionFilters wallets={wallets} categories={categories} creditCards={creditCards} />
 
       {/* Results */}
       {transactions.length === 0 ? (
@@ -102,6 +107,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
                 transaction={t as TransactionWithDetails}
                 wallets={wallets}
                 categories={categories}
+                creditCards={creditCards}
               />
             ))}
           </div>
@@ -112,7 +118,7 @@ async function TransactionsContent({ searchParams }: { searchParams: Awaited<Mov
       <Pagination page={page} totalPages={totalPages} count={count} pageSize={10} />
 
       {/* Mobile FAB — positioned above the summary footer (bottom-16=64px nav + ~52px footer + 8px gap = 124px ≈ bottom-32) */}
-      <NewTransactionButton wallets={wallets} categories={categories} variant="fab" fabBottom="bottom-32" />
+      <NewTransactionButton wallets={wallets} categories={categories} creditCards={creditCards} variant="fab" fabBottom="bottom-32" />
     </div>
   )
 }
@@ -146,6 +152,7 @@ export default async function MovimentacoesPage({ searchParams }: MovimentacoesP
     type: (params.type as Filters['type']) ?? 'ALL',
     walletId: params.walletId,
     categoryId: params.categoryId,
+    creditCardId: params.creditCardId,
     search: params.search,
     startDate: params.startDate ?? defaultStart,
     endDate: params.endDate ?? defaultEnd,

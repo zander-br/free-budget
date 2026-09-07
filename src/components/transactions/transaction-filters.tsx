@@ -13,14 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { WalletWithBalance, Category } from '@/types'
+import type { WalletWithBalance, Category, CreditCard } from '@/types'
 
 interface TransactionFiltersProps {
   wallets: WalletWithBalance[]
   categories: Category[]
+  creditCards?: CreditCard[]
 }
 
-export function TransactionFilters({ wallets, categories }: TransactionFiltersProps) {
+export function TransactionFilters({ wallets, categories, creditCards = [] }: TransactionFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showFilters, setShowFilters] = useState(false)
@@ -53,7 +54,26 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
     searchParams.has('type') ||
     searchParams.has('walletId') ||
     searchParams.has('categoryId') ||
+    searchParams.has('creditCardId') ||
     searchParams.has('search')
+
+  const typeValue = searchParams.get('type') ?? 'ALL'
+  const typeMap: Record<string, string> = {
+    ALL: 'Todos',
+    INCOME: 'Entradas',
+    EXPENSE: 'Saídas',
+    TRANSFER: 'Transferências',
+  }
+  const typeName = typeMap[typeValue] || typeValue
+
+  const walletValue = searchParams.get('walletId') ?? 'ALL'
+  const walletName = walletValue === 'ALL' ? 'Todos' : wallets.find(w => w.id === walletValue)?.name || walletValue
+
+  const cardValue = searchParams.get('creditCardId') ?? 'ALL'
+  const cardName = cardValue === 'ALL' ? 'Todos' : creditCards.find(c => c.id === cardValue)?.name || cardValue
+
+  const categoryValue = searchParams.get('categoryId') ?? 'ALL'
+  const categoryName = categoryValue === 'ALL' ? 'Todas' : categories.find(c => c.id === categoryValue)?.name || categoryValue
 
   return (
     <div className="space-y-3">
@@ -103,17 +123,20 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
 
       {/* Collapsible filter fields */}
       {showFilters && (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {/* Type */}
           <Select
             value={searchParams.get('type') ?? 'ALL'}
             onValueChange={(v) => updateParam('type', v)}
           >
-            <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por tipo">
-              <SelectValue placeholder="Tipo" />
+            <SelectTrigger className="w-full sm:flex-1" aria-label="Filtrar por tipo">
+              <div className="flex items-center gap-1 truncate">
+                <span className="text-muted-foreground">Tipo:</span>
+                <SelectValue placeholder="Todos">{typeName}</SelectValue>
+              </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Todos os tipos</SelectItem>
+              <SelectItem value="ALL">Todos</SelectItem>
               <SelectItem value="INCOME">Entradas</SelectItem>
               <SelectItem value="EXPENSE">Saídas</SelectItem>
               <SelectItem value="TRANSFER">Transferências</SelectItem>
@@ -125,11 +148,14 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
             value={searchParams.get('walletId') ?? 'ALL'}
             onValueChange={(v) => updateParam('walletId', v)}
           >
-            <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por bolso">
-              <SelectValue placeholder="Bolso" />
+            <SelectTrigger className="w-full sm:flex-1" aria-label="Filtrar por bolso">
+              <div className="flex items-center gap-1 truncate">
+                <span className="text-muted-foreground">Bolso:</span>
+                <SelectValue placeholder="Todos">{walletName}</SelectValue>
+              </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Todos os bolsos</SelectItem>
+              <SelectItem value="ALL">Todos</SelectItem>
               {wallets.map((w) => (
                 <SelectItem key={w.id} value={w.id}>
                   {w.name}
@@ -138,16 +164,42 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
             </SelectContent>
           </Select>
 
+          {/* Credit Card */}
+          {creditCards.length > 0 && (
+            <Select
+              value={searchParams.get('creditCardId') ?? 'ALL'}
+              onValueChange={(v) => updateParam('creditCardId', v)}
+            >
+              <SelectTrigger className="w-full sm:flex-1" aria-label="Filtrar por cartão">
+                <div className="flex items-center gap-1 truncate">
+                  <span className="text-muted-foreground">Cartão:</span>
+                  <SelectValue placeholder="Todos">{cardName}</SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                {creditCards.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Category */}
           <Select
             value={searchParams.get('categoryId') ?? 'ALL'}
             onValueChange={(v) => updateParam('categoryId', v)}
           >
-            <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por categoria">
-              <SelectValue placeholder="Categoria" />
+            <SelectTrigger className="w-full sm:flex-1" aria-label="Filtrar por categoria">
+              <div className="flex items-center gap-1 truncate">
+                <span className="text-muted-foreground">Categoria:</span>
+                <SelectValue placeholder="Todas">{categoryName}</SelectValue>
+              </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Todas as categorias</SelectItem>
+              <SelectItem value="ALL">Todas</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -162,7 +214,7 @@ export function TransactionFilters({ wallets, categories }: TransactionFiltersPr
               variant="outline"
               size="sm"
               onClick={clearFilters}
-              className="col-span-2 gap-1.5 sm:col-span-1"
+              className="w-full gap-1.5 sm:w-auto sm:flex-none"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               Limpar filtros

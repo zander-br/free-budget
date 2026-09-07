@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowDown, ArrowUp, ArrowLeftRight } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowLeftRight, CreditCard as CreditCardIcon, Wallet } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,8 @@ import { Switch } from '@/components/ui/switch'
 import { createTransaction, updateTransaction, createRecurringTransactions } from '@/actions/transactions'
 import type { RepeatPeriod } from '@/actions/transactions'
 import { getTodayString } from '@/lib/utils/format'
-import type { WalletWithBalance, Category, TransactionType, TransactionWithDetails } from '@/types'
+import { cn } from '@/lib/utils'
+import type { WalletWithBalance, Category, TransactionType, TransactionWithDetails, CreditCard } from '@/types'
 
 const transactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
@@ -48,6 +49,7 @@ const transactionSchema = z.object({
   category_id: z.string().optional(),
   wallet_from_id: z.string().optional(),
   wallet_to_id: z.string().optional(),
+  credit_card_id: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof transactionSchema>
@@ -76,6 +78,7 @@ interface TransactionDialogProps {
   onOpenChange: (open: boolean) => void
   wallets: WalletWithBalance[]
   categories: Category[]
+  creditCards?: CreditCard[]
   transaction?: TransactionWithDetails
 }
 
@@ -84,12 +87,17 @@ export function TransactionDialog({
   onOpenChange,
   wallets,
   categories,
+  creditCards = [],
   transaction,
 }: TransactionDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [repeatEnabled, setRepeatEnabled] = useState(false)
   const [repeatCount, setRepeatCount] = useState(3)
   const [repeatPeriod, setRepeatPeriod] = useState<RepeatPeriod>('meses')
+  const isInvoice = !!transaction?.description?.startsWith('Fatura - ')
+  const [paymentSource, setPaymentSource] = useState<'wallet' | 'credit_card'>(
+    transaction?.credit_card_id && !isInvoice ? 'credit_card' : 'wallet'
+  )
   const isEditing = !!transaction
 
   const form = useForm<FormValues>({
@@ -107,6 +115,7 @@ export function TransactionDialog({
       category_id: transaction?.category_id ?? '',
       wallet_from_id: transaction?.wallet_from_id ?? '',
       wallet_to_id: transaction?.wallet_to_id ?? '',
+      credit_card_id: transaction?.credit_card_id ?? '',
     },
   })
 
@@ -114,13 +123,29 @@ export function TransactionDialog({
   const dateValue = form.watch('date')
   const incomeCategories = categories.filter((c) => c.type === 'INCOME')
   const expenseCategories = categories.filter((c) => c.type === 'EXPENSE')
+  const isCreditCardMode = type === 'EXPENSE' && paymentSource === 'credit_card'
 
-  // In create mode, auto-set is_paid based on the selected date
+  // In create mode, auto-set is_paid based on the selected date (unless credit card)
   useEffect(() => {
-    if (!isEditing && dateValue) {
+    if (!isEditing && dateValue && !isCreditCardMode) {
       form.setValue('is_paid', isDatePast(dateValue))
     }
-  }, [dateValue, isEditing, form])
+  }, [dateValue, isEditing, form, isCreditCardMode])
+
+  // When switching to credit card, auto-set is_paid to true
+  useEffect(() => {
+    if (isCreditCardMode) {
+      form.setValue('is_paid', true)
+    }
+  }, [isCreditCardMode, form])
+
+  // When switching type away from EXPENSE, reset payment source
+  useEffect(() => {
+    if (type !== 'EXPENSE') {
+      setPaymentSource('wallet')
+      form.setValue('credit_card_id', '')
+    }
+  }, [type, form])
 
   // Reset recurrence state when dialog closes
   useEffect(() => {
@@ -128,8 +153,11 @@ export function TransactionDialog({
       setRepeatEnabled(false)
       setRepeatCount(3)
       setRepeatPeriod('meses')
+      if (!transaction?.credit_card_id) {
+        setPaymentSource('wallet')
+      }
     }
-  }, [open])
+  }, [open, transaction?.credit_card_id])
 
   const paidLabel: Record<string, string> = {
     INCOME: 'Recebido',
@@ -151,15 +179,29 @@ export function TransactionDialog({
         return
       }
 
+      const useCreditCard = values.type === 'EXPENSE' && paymentSource === 'credit_card'
+
+      if (values.type !== 'TRANSFER' && !useCreditCard && values.is_paid && !values.wallet_id) {
+        form.setError('wallet_id', { message: 'Selecione um bolso para o pagamento' })
+        setIsLoading(false)
+        return
+      }
+
+      // For credit card expenses, we need a dummy wallet_id for validation
+      // The server action will handle setting wallet_id to null
       const payload = {
         type: values.type as TransactionType,
         amount,
         date: values.date,
         description: values.description,
-        is_paid: values.is_paid,
+        is_paid: useCreditCard ? true : values.is_paid,
         notes: values.notes?.trim() || undefined,
+        credit_card_id: useCreditCard || isInvoice ? values.credit_card_id : undefined,
         ...(values.type !== 'TRANSFER'
-          ? { wallet_id: values.wallet_id, category_id: values.category_id }
+          ? {
+              wallet_id: useCreditCard && !isInvoice ? 'placeholder' : values.wallet_id,
+              category_id: values.category_id,
+            }
           : { wallet_from_id: values.wallet_from_id, wallet_to_id: values.wallet_to_id }),
       }
 
@@ -271,6 +313,8 @@ export function TransactionDialog({
                       {...field}
                       placeholder="Ex: Aluguel, Supermercado, Salário..."
                       autoComplete="off"
+                      readOnly={isInvoice}
+                      className={isInvoice ? 'bg-muted/50 cursor-not-allowed' : ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -293,36 +337,79 @@ export function TransactionDialog({
               )}
             />
 
-            {/* is_paid toggle */}
-            <FormField
-              control={form.control}
-              name="is_paid"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between rounded-lg border px-4 py-3">
-                    <div className="space-y-0.5">
-                      <FormLabel className="cursor-pointer text-sm font-medium">
-                        {paidLabel[type] ?? 'Pago'}
-                      </FormLabel>
-                      <p className="text-muted-foreground text-xs">
-                        {field.value
-                          ? 'Esta movimentação foi efetivada'
-                          : 'Pendente — ainda não efetivada'}
-                      </p>
+            {/* is_paid toggle — hidden for credit card transactions */}
+            {!isCreditCardMode && (
+              <FormField
+                control={form.control}
+                name="is_paid"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+                      <div className="space-y-0.5">
+                        <FormLabel className="cursor-pointer text-sm font-medium">
+                          {paidLabel[type] ?? 'Pago'}
+                        </FormLabel>
+                        <p className="text-muted-foreground text-xs">
+                          {field.value
+                            ? 'Esta movimentação foi efetivada'
+                            : 'Pendente — ainda não efetivada'}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
                     </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </div>
-                </FormItem>
-              )}
-            />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* EXPENSE — Payment source selector */}
+            {type === 'EXPENSE' && creditCards.length > 0 && !isInvoice && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Fonte de pagamento</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentSource('wallet')
+                      form.setValue('credit_card_id', '')
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                      paymentSource === 'wallet'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    Bolso
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentSource('credit_card')
+                      form.setValue('wallet_id', '')
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                      paymentSource === 'credit_card'
+                        ? 'border-violet-500 bg-violet-500/5 text-violet-600 dark:text-violet-400'
+                        : 'border-border text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <CreditCardIcon className="h-4 w-4" />
+                    Cartão
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* INCOME / EXPENSE fields */}
-            {(type === 'INCOME' || type === 'EXPENSE') && (
+            {(type === 'INCOME' || (type === 'EXPENSE' && paymentSource === 'wallet')) && (
               <>
                 <FormField
                   control={form.control}
@@ -377,6 +464,72 @@ export function TransactionDialog({
                     </FormItem>
                   )}
                 />
+              </>
+            )}
+
+            {/* EXPENSE with Credit Card */}
+            {type === 'EXPENSE' && paymentSource === 'credit_card' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="credit_card_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cartão de Crédito</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecione o cartão">
+                              {creditCards.find((cc) => cc.id === field.value)?.name}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {creditCards.map((cc) => (
+                            <SelectItem key={cc.id} value={cc.id}>
+                              {cc.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Categoria</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecione a categoria">
+                              {categories.find((c) => c.id === field.value)?.name}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {expenseCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Credit card info badge */}
+                <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 dark:border-violet-800 dark:bg-violet-950/30">
+                  <p className="text-xs text-violet-700 dark:text-violet-300">
+                    💳 Compras no cartão são automaticamente marcadas como pagas. A fatura será criada no dia do vencimento do cartão.
+                  </p>
+                </div>
               </>
             )}
 
@@ -532,3 +685,4 @@ export function TransactionDialog({
     </Dialog>
   )
 }
+
