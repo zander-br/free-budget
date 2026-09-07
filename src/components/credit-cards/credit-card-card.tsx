@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CreditCard as CreditCardIcon, Pencil, Trash2, Calendar, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/format'
 import { Button } from '@/components/ui/button'
@@ -50,10 +51,15 @@ export function CreditCardCard({ creditCard, invoiceAmount = 0, availableLimit }
 
   return (
     <>
-      <Card className="group relative overflow-hidden">
+      <Card className="group relative overflow-hidden transition-colors hover:bg-muted/50">
+        <Link 
+          href={`/cartoes/${creditCard.id}`} 
+          className="absolute inset-0 z-0" 
+          aria-label={`Ver detalhes do cartão ${creditCard.name}`}
+        />
         {/* Gradient accent bar */}
         <div
-          className="absolute inset-x-0 top-0 h-1"
+          className="absolute inset-x-0 top-0 h-1 z-0"
           style={{
             background: 'linear-gradient(90deg, #8B5CF6, #6366F1, #3B82F6)',
           }}
@@ -79,7 +85,7 @@ export function CreditCardCard({ creditCard, invoiceAmount = 0, availableLimit }
             </div>
 
             {/* Actions */}
-            <div className="flex gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+            <div className="relative z-10 flex gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
               <Button
                 variant="ghost"
                 size="icon"
