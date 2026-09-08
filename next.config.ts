@@ -9,7 +9,6 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   turbopack: {},
-  output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "@base-ui/react"],
   },
