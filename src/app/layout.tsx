@@ -13,8 +13,8 @@ export const metadata: Metadata = {
     title: 'Free Budget',
   },
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon-192x192.svg',
+    apple: '/icons/apple-touch-icon.svg',
   },
 }
 
