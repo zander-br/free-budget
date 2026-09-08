@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-// @ts-expect-error - ServiceWorkerGlobalScope is not in the default Next.js tsconfig lib
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const self: ServiceWorkerGlobalScope | any;
 
 const serwist = new Serwist({

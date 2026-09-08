@@ -36,6 +36,7 @@ export function InfiniteTransactionList({
 
   useEffect(() => {
     if (filterKey !== currentFilterKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTransactions(initialTransactions)
       setPage(filters.page ?? 1)
       setHasMore(initialTotalPages > (filters.page ?? 1))

@@ -492,7 +492,7 @@ export async function settleTransaction(id: string, walletId?: string): Promise<
 
   const today = todayBrasilia()
 
-  const updateData: any = { is_paid: true, date: today }
+  const updateData: Record<string, string | boolean> = { is_paid: true, date: today }
   if (walletId) {
     updateData.wallet_id = walletId
   }

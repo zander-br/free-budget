@@ -1,0 +1,196 @@
+
+> free-budget@0.1.0 lint
+> eslint . --ext .ts,.tsx
+
+
+/Users/zander/Developer/free-budget/public/sw.js
+  1:339    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:866    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:1626   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:1702   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:1729   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:1745   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:2224   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:2334   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:2350   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:2411   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:2963   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:3938   error    Unexpected aliasing of 'this' to local variable                        @typescript-eslint/no-this-alias
+  1:4064   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:4646   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:4891   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:5753   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:5947   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:6004   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:6142   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:7032   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:7090   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:7827   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:8380   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:8786   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:9449   warning  'e' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:9473   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:9722   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:13459  warning  'e' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:13774  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:13954  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:14757  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:14861  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:15056  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:15330  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:15597  warning  't' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:15791  warning  'a' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:15856  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:16007  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:16335  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:16542  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:16907  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:17371  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:17935  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:18053  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:18249  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:19203  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:19407  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:19784  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:20122  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:20253  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:20350  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:20620  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:20912  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:21299  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:21760  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:22106  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:22231  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:22819  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:23368  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:23492  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:24102  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:24937  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:26242  warning  'e' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:26559  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:26686  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:26904  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:27261  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:27341  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:27471  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:27526  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:29750  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:29855  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:30109  warning  'e' is defined but never used                                          @typescript-eslint/no-unused-vars
+  1:30517  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:30688  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:30829  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:31079  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:31654  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  1:31717  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:152    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:686    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:948    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:1103   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:1345   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:1941   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  2:3558   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/zander/Developer/free-budget/public/workbox-7144475a.js
+     3:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+     5:7   warning  Expected an assignment or function call and instead saw an expression                                                @typescript-eslint/no-unused-expressions
+     6:14  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+    52:7   error    Definition for rule '@typescript-eslint/ban-types' was not found                                                     @typescript-eslint/ban-types
+   419:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                                                     @typescript-eslint/ban-types
+   435:5   warning  Unused eslint-disable directive (no problems were reported)
+   456:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   458:7   warning  Expected an assignment or function call and instead saw an expression                                                @typescript-eslint/no-unused-expressions
+   459:14  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   752:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+   754:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+   948:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+   964:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+   970:13  warning  Unused eslint-disable directive (no problems were reported)
+  1185:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1187:7   warning  Expected an assignment or function call and instead saw an expression                                                @typescript-eslint/no-unused-expressions
+  1188:14  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+  1346:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                                                     @typescript-eslint/ban-types
+  1738:35  warning  Unused eslint-disable directive (no problems were reported)
+  2076:18  warning  'error' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+
+/Users/zander/Developer/free-budget/src/actions/credit-cards.ts
+  198:3  warning  'startDate' is defined but never used                                                                  @typescript-eslint/no-unused-vars
+  199:3  warning  'endDate' is defined but never used                                                                    @typescript-eslint/no-unused-vars
+  415:7  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+/Users/zander/Developer/free-budget/src/actions/transactions.ts
+  495:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/zander/Developer/free-budget/src/app/(dashboard)/movimentacoes/page.tsx
+  66:31  warning  'count' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/zander/Developer/free-budget/src/app/sw.ts
+  12:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/zander/Developer/free-budget/src/components/shared/sidebar.tsx
+  31:26  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/zander/Developer/free-budget/src/components/shared/sidebar.tsx:31:26
+  29 |   useEffect(() => {
+  30 |     const stored = localStorage.getItem('sidebar-collapsed')
+> 31 |     if (stored !== null) setCollapsed(stored === 'true')
+     |                          ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |   }, [])
+  33 |
+  34 |   function toggleCollapsed() {  react-hooks/set-state-in-effect
+
+/Users/zander/Developer/free-budget/src/components/transactions/infinite-transaction-list.tsx
+  39:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/zander/Developer/free-budget/src/components/transactions/infinite-transaction-list.tsx:39:7
+  37 |   useEffect(() => {
+  38 |     if (filterKey !== currentFilterKey) {
+> 39 |       setTransactions(initialTransactions)
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  40 |       setPage(filters.page ?? 1)
+  41 |       setHasMore(initialTotalPages > (filters.page ?? 1))
+  42 |       setCurrentFilterKey(filterKey)  react-hooks/set-state-in-effect
+
+/Users/zander/Developer/free-budget/src/components/transactions/transaction-dialog.tsx
+  122:16  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/zander/Developer/free-budget/src/components/transactions/transaction-dialog.tsx:122:16
+  120 |   })
+  121 |
+> 122 |   const type = form.watch('type')
+      |                ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  123 |   const dateValue = form.watch('date')
+  124 |   const incomeCategories = categories.filter((c) => c.type === 'INCOME')
+  125 |   const expenseCategories = categories.filter((c) => c.type === 'EXPENSE')  react-hooks/incompatible-library
+
+/Users/zander/Developer/free-budget/src/components/wallets/wallet-form.tsx
+  74:24  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/zander/Developer/free-budget/src/components/wallets/wallet-form.tsx:74:24
+  72 |   })
+  73 |
+> 74 |   const selectedIcon = form.watch('icon')
+     |                        ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  75 |   const selectedColor = form.watch('color')
+  76 |
+  77 |   async function onSubmit(values: WalletFormValues) {  react-hooks/incompatible-library
+
+✖ 116 problems (11 errors, 105 warnings)
+  0 errors and 8 warnings potentially fixable with the `--fix` option.
+
