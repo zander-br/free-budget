@@ -743,7 +743,7 @@ export async function createInstallmentTransactions(
       notes: formData.notes?.trim() || null,
       is_paid: true,
       wallet_id: null,
-      category_id: input.category_id || null,
+      category_id: formData.category_id || null,
       wallet_from_id: null,
       wallet_to_id: null,
       credit_card_id: formData.credit_card_id,
