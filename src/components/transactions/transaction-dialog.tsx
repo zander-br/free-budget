@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { createTransaction, updateTransaction, createRecurringTransactions } from '@/actions/transactions'
+import { createTransaction, updateTransaction, createRecurringTransactions, createInstallmentTransactions } from '@/actions/transactions'
 import type { RepeatPeriod } from '@/actions/transactions'
 import { getTodayString } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
@@ -206,11 +206,18 @@ export function TransactionDialog({
       }
 
       const isRecurring = !isEditing && repeatEnabled && repeatCount >= 1
-      const result = isEditing
-        ? await updateTransaction(transaction.id, payload)
-        : isRecurring
-          ? await createRecurringTransactions(payload, repeatCount, repeatPeriod)
-          : await createTransaction(payload)
+      const isInstallment = !isEditing && repeatEnabled && useCreditCard && repeatCount > 1
+      
+      let result;
+      if (isEditing) {
+        result = await updateTransaction(transaction.id, payload)
+      } else if (isInstallment) {
+        result = await createInstallmentTransactions(payload as any, repeatCount)
+      } else if (isRecurring) {
+        result = await createRecurringTransactions(payload, repeatCount, repeatPeriod)
+      } else {
+        result = await createTransaction(payload)
+      }
 
       if (!result.success) {
         toast.error(result.error)
@@ -219,9 +226,11 @@ export function TransactionDialog({
 
       const successMsg = isEditing
         ? 'Movimentação atualizada com sucesso.'
-        : isRecurring
-          ? `${repeatCount + 1} lançamentos criados com sucesso.`
-          : 'Movimentação adicionada com sucesso.'
+        : isInstallment
+          ? `${repeatCount} parcelas criadas com sucesso.`
+          : isRecurring
+            ? `${repeatCount + 1} lançamentos criados com sucesso.`
+            : 'Movimentação adicionada com sucesso.'
       toast.success(successMsg)
       onOpenChange(false)
       form.reset()
@@ -617,17 +626,26 @@ export function TransactionDialog({
               <div className="space-y-3 rounded-lg border px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-medium">Repetir movimentação</p>
+                    <p className="text-sm font-medium">
+                      {isCreditCardMode ? 'Parcelar movimentação' : 'Repetir movimentação'}
+                    </p>
                     <p className="text-muted-foreground text-xs">
                       {repeatEnabled
-                        ? `Cria ${repeatCount + 1} lançamentos no total`
+                        ? isCreditCardMode
+                          ? `Cria ${repeatCount} parcelas no total`
+                          : `Cria ${repeatCount + 1} lançamentos no total`
                         : 'Lançamento único'}
                     </p>
                   </div>
                   <Switch
                     checked={repeatEnabled}
-                    onCheckedChange={setRepeatEnabled}
-                    aria-label="Repetir movimentação"
+                    onCheckedChange={(checked) => {
+                      setRepeatEnabled(checked)
+                      if (checked && isCreditCardMode && repeatCount < 2) {
+                        setRepeatCount(2)
+                      }
+                    }}
+                    aria-label={isCreditCardMode ? 'Parcelar movimentação' : 'Repetir movimentação'}
                   />
                 </div>
 
@@ -635,31 +653,34 @@ export function TransactionDialog({
                   <div className="flex gap-2">
                     <Input
                       type="number"
-                      min={1}
+                      min={isCreditCardMode ? 2 : 1}
                       max={480}
                       value={repeatCount}
                       onChange={(e) => {
-                        const v = Math.max(1, Math.min(480, parseInt(e.target.value) || 1))
+                        const min = isCreditCardMode ? 2 : 1
+                        const v = Math.max(min, Math.min(480, parseInt(e.target.value) || min))
                         setRepeatCount(v)
                       }}
                       className="w-24"
-                      aria-label="Quantidade de repetições"
+                      aria-label={isCreditCardMode ? 'Quantidade de parcelas' : 'Quantidade de repetições'}
                     />
-                    <Select value={repeatPeriod} onValueChange={(v) => setRepeatPeriod(v as RepeatPeriod)}>
-                      <SelectTrigger className="flex-1" aria-label="Período de repetição">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dias">Dia(s)</SelectItem>
-                        <SelectItem value="semanas">Semana(s)</SelectItem>
-                        <SelectItem value="quinzenas">Quinzena(s)</SelectItem>
-                        <SelectItem value="meses">Mês/Meses</SelectItem>
-                        <SelectItem value="bimestres">Bimestre(s)</SelectItem>
-                        <SelectItem value="trimestres">Trimestre(s)</SelectItem>
-                        <SelectItem value="semestres">Semestre(s)</SelectItem>
-                        <SelectItem value="anos">Ano(s)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {!isCreditCardMode && (
+                      <Select value={repeatPeriod} onValueChange={(v) => setRepeatPeriod(v as RepeatPeriod)}>
+                        <SelectTrigger className="flex-1" aria-label="Período de repetição">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dias">Dia(s)</SelectItem>
+                          <SelectItem value="semanas">Semana(s)</SelectItem>
+                          <SelectItem value="quinzenas">Quinzena(s)</SelectItem>
+                          <SelectItem value="meses">Mês/Meses</SelectItem>
+                          <SelectItem value="bimestres">Bimestre(s)</SelectItem>
+                          <SelectItem value="trimestres">Trimestre(s)</SelectItem>
+                          <SelectItem value="semestres">Semestre(s)</SelectItem>
+                          <SelectItem value="anos">Ano(s)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
               </div>

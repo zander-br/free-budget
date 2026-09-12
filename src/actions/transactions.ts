@@ -698,6 +698,80 @@ export async function createRecurringTransactions(
   return { success: true, data: { count: total } }
 }
 
+export async function createInstallmentTransactions(
+  formData: {
+    type: 'EXPENSE'
+    amount: number
+    date: string
+    category_id?: string
+    credit_card_id: string
+    description?: string
+    notes?: string
+  },
+  installments: number
+): Promise<ActionResult<{ count: number }>> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Não autenticado' }
+
+  const parsed = createTransactionSchema.safeParse({ ...formData, is_paid: true, wallet_id: 'placeholder' })
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+
+  const input = parsed.data
+  const totalCents = toCents(input.amount)
+  const baseCents = Math.floor(totalCents / installments)
+  const remainderCents = totalCents % installments
+
+  const baseDescription = formData.description ?? ''
+  const suffixLen = ` ${installments}/${installments}`.length
+  const safeBase = baseDescription.slice(0, Math.max(0, 200 - suffixLen))
+
+  const records: TransactionInsert[] = []
+  for (let i = 0; i < installments; i++) {
+    const date = addPeriodToDate(input.date, 'meses', i)
+    const cents = i === 0 ? baseCents + remainderCents : baseCents
+    const description = safeBase ? `${safeBase} ${i + 1}/${installments}` : null
+
+    const record: TransactionInsert = {
+      user_id: user.id,
+      type: 'EXPENSE',
+      amount: cents,
+      date,
+      description,
+      notes: formData.notes?.trim() || null,
+      is_paid: true,
+      wallet_id: null,
+      category_id: input.category_id || null,
+      wallet_from_id: null,
+      wallet_to_id: null,
+      credit_card_id: formData.credit_card_id,
+      invoice_id: null,
+    }
+    records.push(record)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from('transactions').insert(records as any[])
+  if (error) return { success: false, error: error.message }
+
+  const datesToUpdate = new Set<string>()
+  for (const record of records) {
+    datesToUpdate.add(record.date)
+  }
+  for (const dateStr of datesToUpdate) {
+    await upsertInvoiceTransaction(formData.credit_card_id, dateStr)
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/movimentacoes')
+  revalidatePath('/bolsos')
+  revalidatePath('/cartoes')
+
+  return { success: true, data: { count: installments } }
+}
+
 export async function getTransactionsSummary(
   filters: TransactionFilters
 ): Promise<ActionResult<TransactionsSummary>> {
