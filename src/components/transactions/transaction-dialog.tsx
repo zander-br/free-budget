@@ -92,7 +92,7 @@ export function TransactionDialog({
 }: TransactionDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [repeatEnabled, setRepeatEnabled] = useState(false)
-  const [repeatCount, setRepeatCount] = useState(3)
+  const [repeatCount, setRepeatCount] = useState<number | ''>('')
   const [repeatPeriod, setRepeatPeriod] = useState<RepeatPeriod>('meses')
   const isInvoice = !!transaction?.description?.startsWith('Fatura - ')
   const [paymentSource, setPaymentSource] = useState<'wallet' | 'credit_card'>(
@@ -151,7 +151,7 @@ export function TransactionDialog({
   useEffect(() => {
     if (!open) {
       setRepeatEnabled(false)
-      setRepeatCount(3)
+      setRepeatCount('')
       setRepeatPeriod('meses')
       if (!transaction?.credit_card_id) {
         setPaymentSource('wallet')
@@ -205,16 +205,31 @@ export function TransactionDialog({
           : { wallet_from_id: values.wallet_from_id, wallet_to_id: values.wallet_to_id }),
       }
 
-      const isRecurring = !isEditing && repeatEnabled && repeatCount >= 1
-      const isInstallment = !isEditing && repeatEnabled && useCreditCard && repeatCount > 1
+      const numRepeat = typeof repeatCount === 'number' ? repeatCount : 0
+
+      if (!isEditing && repeatEnabled) {
+        if (useCreditCard && numRepeat < 2) {
+          toast.error('Informe pelo menos 2 parcelas para o parcelamento.')
+          setIsLoading(false)
+          return
+        }
+        if (!useCreditCard && numRepeat < 1) {
+          toast.error('Informe a quantidade de repetições.')
+          setIsLoading(false)
+          return
+        }
+      }
+
+      const isRecurring = !isEditing && repeatEnabled && numRepeat >= 1
+      const isInstallment = !isEditing && repeatEnabled && useCreditCard && numRepeat > 1
       
       let result;
       if (isEditing) {
         result = await updateTransaction(transaction.id, payload)
       } else if (isInstallment) {
-        result = await createInstallmentTransactions(payload as any, repeatCount)
+        result = await createInstallmentTransactions(payload as any, numRepeat)
       } else if (isRecurring) {
-        result = await createRecurringTransactions(payload, repeatCount, repeatPeriod)
+        result = await createRecurringTransactions(payload, numRepeat, repeatPeriod)
       } else {
         result = await createTransaction(payload)
       }
@@ -227,9 +242,9 @@ export function TransactionDialog({
       const successMsg = isEditing
         ? 'Movimentação atualizada com sucesso.'
         : isInstallment
-          ? `${repeatCount} parcelas criadas com sucesso.`
+          ? `${numRepeat} parcelas criadas com sucesso.`
           : isRecurring
-            ? `${repeatCount + 1} lançamentos criados com sucesso.`
+            ? `${numRepeat + 1} lançamentos criados com sucesso.`
             : 'Movimentação adicionada com sucesso.'
       toast.success(successMsg)
       onOpenChange(false)
@@ -632,19 +647,14 @@ export function TransactionDialog({
                     <p className="text-muted-foreground text-xs">
                       {repeatEnabled
                         ? isCreditCardMode
-                          ? `Cria ${repeatCount} parcelas no total`
-                          : `Cria ${repeatCount + 1} lançamentos no total`
+                          ? `Cria ${repeatCount || 0} parcelas no total`
+                          : `Cria ${(typeof repeatCount === 'number' ? repeatCount : 0) + 1} lançamentos no total`
                         : 'Lançamento único'}
                     </p>
                   </div>
                   <Switch
                     checked={repeatEnabled}
-                    onCheckedChange={(checked) => {
-                      setRepeatEnabled(checked)
-                      if (checked && isCreditCardMode && repeatCount < 2) {
-                        setRepeatCount(2)
-                      }
-                    }}
+                    onCheckedChange={setRepeatEnabled}
                     aria-label={isCreditCardMode ? 'Parcelar movimentação' : 'Repetir movimentação'}
                   />
                 </div>
@@ -657,9 +667,15 @@ export function TransactionDialog({
                       max={480}
                       value={repeatCount}
                       onChange={(e) => {
-                        const min = isCreditCardMode ? 2 : 1
-                        const v = Math.max(min, Math.min(480, parseInt(e.target.value) || min))
-                        setRepeatCount(v)
+                        const val = e.target.value
+                        if (val === '') {
+                          setRepeatCount('')
+                          return
+                        }
+                        const parsed = parseInt(val)
+                        if (!isNaN(parsed)) {
+                          setRepeatCount(Math.min(480, parsed))
+                        }
                       }}
                       className="w-24"
                       aria-label={isCreditCardMode ? 'Quantidade de parcelas' : 'Quantidade de repetições'}
