@@ -791,14 +791,13 @@ export async function getTransactionsSummary(
     .eq('is_active', true)
   if (walletId) walletsQ = walletsQ.eq('id', walletId)
 
-  // Paid transactions before startDate (for saldo anterior computation)
+  // Transactions before startDate (for saldo anterior computation)
   const buildPrevTxQ = () => {
     if (!startDate) return null
     let q = supabase
       .from('transactions')
-      .select('type, amount, wallet_id, wallet_from_id, wallet_to_id')
+      .select('type, amount, is_paid, wallet_id, wallet_from_id, wallet_to_id')
       .eq('user_id', user.id)
-      .eq('is_paid', true)
       .lt('date', startDate)
     if (!walletId) {
       q = q.in('type', ['INCOME', 'EXPENSE'])
@@ -850,7 +849,7 @@ export async function getTransactionsSummary(
   const [walletsRes, prevTxRes, paidPeriodRes, pendingPeriodRes, paidBalanceRes, pendingBalanceRes] =
     await Promise.all([
       walletsQ,
-      prevTxQuery ?? Promise.resolve({ data: [] as { type: string; amount: number; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[], error: null }),
+      prevTxQuery ?? Promise.resolve({ data: [] as { type: string; amount: number; is_paid: boolean; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[], error: null }),
       buildPeriodQ(true),
       buildPeriodQ(false),
       hasExtraFilters ? buildBalanceQ(true) : buildPeriodQ(true),
@@ -859,17 +858,24 @@ export async function getTransactionsSummary(
 
   // Compute saldo anterior
   const initialBalance = walletsRes.data?.reduce((sum, w) => sum + (w.initial_balance ?? 0), 0) ?? 0
-  let saldoAnterior = initialBalance
+  let realSaldoAnterior = initialBalance
+  let projectedSaldoAnterior = initialBalance
 
-  for (const tx of (prevTxRes.data ?? []) as { type: string; amount: number; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[]) {
+  for (const tx of (prevTxRes.data ?? []) as { type: string; amount: number; is_paid: boolean; wallet_id: string | null; wallet_from_id: string | null; wallet_to_id: string | null }[]) {
+    let txAmount = 0
     if (tx.type === 'INCOME') {
-      if (!walletId || tx.wallet_id === walletId) saldoAnterior += tx.amount
+      if (!walletId || tx.wallet_id === walletId) txAmount = tx.amount
     } else if (tx.type === 'EXPENSE') {
-      if (!walletId || tx.wallet_id === walletId) saldoAnterior -= tx.amount
+      if (!walletId || tx.wallet_id === walletId) txAmount = -tx.amount
     } else if (tx.type === 'TRANSFER' && walletId) {
-      if (tx.wallet_to_id === walletId) saldoAnterior += tx.amount
-      if (tx.wallet_from_id === walletId) saldoAnterior -= tx.amount
+      if (tx.wallet_to_id === walletId) txAmount = tx.amount
+      if (tx.wallet_from_id === walletId) txAmount = -tx.amount
     }
+
+    if (tx.is_paid) {
+      realSaldoAnterior += txAmount
+    }
+    projectedSaldoAnterior += txAmount
   }
 
   // Compute filtered breakdown rows
@@ -905,13 +911,13 @@ export async function getTransactionsSummary(
   return {
     success: true,
     data: {
-      saldoAnterior,
+      saldoAnterior: projectedSaldoAnterior,
       receitaRealizada,
       receitaPrevista,
       despesaRealizada,
       despesaPrevista,
-      saldo: saldoAnterior + balanceIncome - balanceExpense,
-      previsto: saldoAnterior + balanceIncome - balanceExpense + prevIncome - prevExpense,
+      saldo: realSaldoAnterior + balanceIncome - balanceExpense,
+      previsto: projectedSaldoAnterior + balanceIncome - balanceExpense + prevIncome - prevExpense,
     },
   }
 }

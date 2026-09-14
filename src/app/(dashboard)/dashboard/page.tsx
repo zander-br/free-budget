@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getWallets } from '@/actions/wallets'
 import { getCreditCards, getCreditCardsSummary } from '@/actions/credit-cards'
-import { getUpcomingTransactions, getDashboardSummary, getCategories } from '@/actions/transactions'
+import { getUpcomingTransactions, getDashboardSummary, getCategories, getTransactionsSummary } from '@/actions/transactions'
 import { getCurrentMonthRange } from '@/lib/utils/format'
 import { TotalBalanceCard } from '@/components/dashboard/total-balance-card'
 import { SummaryCards } from '@/components/dashboard/summary-cards'
@@ -27,13 +27,22 @@ async function DashboardContent() {
   const { startDate, endDate } = getCurrentMonthRange()
   const firstName = (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ?? 'você'
 
-  const [walletsResult, upcomingResult, summaryResult, categoriesResult, creditCardsResult, creditCardsSummaryResult] = await Promise.all([
+  const [
+    walletsResult,
+    upcomingResult,
+    summaryResult,
+    categoriesResult,
+    creditCardsResult,
+    creditCardsSummaryResult,
+    txSummaryResult,
+  ] = await Promise.all([
     getWallets(),
     getUpcomingTransactions(),
     getDashboardSummary(startDate, endDate),
     getCategories(),
     getCreditCards(),
     getCreditCardsSummary(startDate, endDate),
+    getTransactionsSummary({ startDate, endDate }),
   ])
 
   const wallets = walletsResult.success ? (walletsResult.data as WalletWithBalance[]) : []
@@ -42,6 +51,7 @@ async function DashboardContent() {
   const categories = categoriesResult.success ? (categoriesResult.data as Category[]) : []
   const creditCards = creditCardsResult.success ? (creditCardsResult.data as CreditCard[]) : []
   const creditCardsSummary = creditCardsSummaryResult.success ? (creditCardsSummaryResult.data as CreditCardWithUsage[]) : []
+  const txSummary = txSummaryResult.success ? txSummaryResult.data : null
   const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0)
 
   if (wallets.length === 0 && creditCards.length === 0) {
@@ -76,7 +86,11 @@ async function DashboardContent() {
       <TotalBalanceCard totalBalance={totalBalance} />
 
       {/* Period summary */}
-      <SummaryCards income={summary.income} expense={summary.expense} />
+      <SummaryCards 
+        income={summary.income} 
+        expense={summary.expense} 
+        balance={txSummary?.previsto}
+      />
 
       {/* Upcoming — bills due in the next 7 days */}
       <UpcomingTransactions

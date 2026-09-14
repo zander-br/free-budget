@@ -5,10 +5,11 @@ import { formatCurrency } from '@/lib/utils/format'
 interface SummaryCardsProps {
   income: number
   expense: number
+  balance?: number
 }
 
-export function SummaryCards({ income, expense }: SummaryCardsProps) {
-  const balance = income - expense
+export function SummaryCards({ income, expense, balance: propBalance }: SummaryCardsProps) {
+  const balance = propBalance ?? (income - expense)
 
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
