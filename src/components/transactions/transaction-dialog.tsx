@@ -5,11 +5,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowDown, ArrowUp, ArrowLeftRight, CreditCard as CreditCardIcon, Wallet } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowLeftRight, CreditCard as CreditCardIcon, Wallet, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
@@ -227,7 +227,7 @@ export function TransactionDialog({
       if (isEditing) {
         result = await updateTransaction(transaction.id, payload)
       } else if (isInstallment) {
-        result = await createInstallmentTransactions(payload as any, numRepeat)
+        result = await createInstallmentTransactions(payload as Parameters<typeof createInstallmentTransactions>[0], numRepeat)
       } else if (isRecurring) {
         result = await createRecurringTransactions(payload, numRepeat, repeatPeriod)
       } else {
@@ -258,72 +258,123 @@ export function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? `Editar ${typeLabel}` : 'Nova Movimentação'}</DialogTitle>
-        </DialogHeader>
-
+      <DialogContent
+        showCloseButton={false}
+        className="p-0 gap-0 overflow-hidden max-h-[92dvh] sm:max-h-[90vh] sm:max-w-lg"
+      >
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Type tabs */}
-            {!isEditing && (
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col h-full max-h-[92dvh] sm:max-h-[90vh] overflow-hidden"
+          >
+            {/* Header (Sticky / Shrink-0 at Top) */}
+            <div className="shrink-0 border-b bg-popover px-4 pt-4 pb-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onOpenChange(false)}
+                    className="sm:hidden -ml-1 text-muted-foreground shrink-0"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <DialogTitle className="text-base font-semibold truncate">
+                      {isEditing ? `Editar ${typeLabel}` : 'Nova Movimentação'}
+                    </DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Preencha os dados da movimentação financeira
+                    </DialogDescription>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium sm:hidden"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Salvar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onOpenChange(false)}
+                    className="hidden sm:flex text-muted-foreground"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Type tabs - sticky at top, immediately accessible */}
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Tabs value={field.value} onValueChange={field.onChange}>
+                        <TabsList className="grid w-full grid-cols-3 h-10 p-1">
+                          <TabsTrigger value="EXPENSE" className="gap-1.5 py-1 text-xs sm:text-sm">
+                            <ArrowDown className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
+                            Saída
+                          </TabsTrigger>
+                          <TabsTrigger value="INCOME" className="gap-1.5 py-1 text-xs sm:text-sm">
+                            <ArrowUp className="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
+                            Entrada
+                          </TabsTrigger>
+                          <TabsTrigger value="TRANSFER" className="gap-1.5 py-1 text-xs sm:text-sm">
+                            <ArrowLeftRight className="h-3.5 w-3.5 text-blue-500" aria-hidden="true" />
+                            Transferência
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 overscroll-contain pb-8">
+              {/* Amount */}
               <FormField
                 control={form.control}
-                name="type"
+                name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <Tabs value={field.value} onValueChange={field.onChange}>
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="EXPENSE" className="gap-1.5">
-                          <ArrowDown className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
-                          Saída
-                        </TabsTrigger>
-                        <TabsTrigger value="INCOME" className="gap-1.5">
-                          <ArrowUp className="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
-                          Entrada
-                        </TabsTrigger>
-                        <TabsTrigger value="TRANSFER" className="gap-1.5">
-                          <ArrowLeftRight className="h-3.5 w-3.5 text-blue-500" aria-hidden="true" />
-                          Transfer.
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
+                    <FormLabel>Valor</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-base font-semibold">
+                          R$
+                        </span>
+                        <Input
+                          value={field.value}
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0,00"
+                          className="pl-10 text-lg font-bold h-11"
+                          autoComplete="off"
+                          onChange={(e) => field.onChange(formatCurrencyMask(e.target.value))}
+                        />
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-
-            {/* Amount */}
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-sm">
-                        R$
-                      </span>
-                      <Input
-                        value={field.value}
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="0,00"
-                        className="pl-9"
-                        autoComplete="off"
-                        onChange={(e) => field.onChange(formatCurrencyMask(e.target.value))}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Description — required */}
             <FormField
@@ -702,7 +753,10 @@ export function TransactionDialog({
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
+            </div>
+
+            {/* Sticky Bottom Footer */}
+            <div className="shrink-0 border-t bg-popover/95 backdrop-blur-xs p-4 flex gap-2">
               <Button
                 type="button"
                 variant="outline"
